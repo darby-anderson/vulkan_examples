@@ -2058,7 +2058,7 @@ private:
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
         std::vector<uint32_t> concurrentIndices = {indices.transferFamily.value(), indices.graphicsFamily.value()}; 
 
-        std::cout << "staging buffer: " << stagingBuffer << std::endl;
+        // std::cout << "staging buffer: " << stagingBuffer << std::endl;
 
         createBuffer(
             imageSize,
@@ -2532,6 +2532,8 @@ private:
 };
 
 int main() {
+    std::cout << "HELLO WORLD" << std::endl;
+    
     HelloTriangleApplication app;
 
     try{

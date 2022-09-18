@@ -41,3 +41,10 @@ build/
 bld/
 [Bb]in/
 [Oo]bj/
+
+# vscode 
+.vscode/
+
+# vcpkg
+vcpkg/
+vcpkg_installed/

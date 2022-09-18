@@ -1,0 +1,14 @@
+{
+    "name": "vulkan-examples",
+    "version": "0.0.1",
+    "dependencies": [
+      "vulkan",
+      "vulkan-memory-allocator",
+      "glfw3",
+      "glm",
+      "stb",
+      {
+        "name": "tinyobjloader"
+      }
+    ]
+  }
