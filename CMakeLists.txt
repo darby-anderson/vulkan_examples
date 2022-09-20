@@ -1,5 +1,8 @@
 # set(VCPKG_TARGET_TRIPLET "x86-windows")
 # set(VCPKG_FEATURE_FLAGS "versions")
+
+set(CMAKE_TOOLCHAIN_FILE "F:/DevTools/vcpkg/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

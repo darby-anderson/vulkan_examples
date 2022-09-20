@@ -1,5 +1,11 @@
-#define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
+#define USING_VMA 0
+
+#if USING_VMA
+    #define VMA_IMPLEMENTATION
+    #include <vk_mem_alloc.h>
+#else
+    #include <vulkan/vulkan.h>
+#endif
 
 #include <GLFW/glfw3.h>
 
@@ -37,8 +43,8 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::string MODEL_PATH = "../models/bell_x1-low_resolution-obj/bell_x1_mesh.obj"; 
-const std::string TEXTURE_PATH = "../models/bell_x1-low_resolution-obj/bell_x1_diffuse.jpg";
+const std::string MODEL_PATH = "../../../models/bell_x1-low_resolution-obj/bell_x1_mesh.obj"; 
+const std::string TEXTURE_PATH = "../../../models/bell_x1-low_resolution-obj/bell_x1_diffuse.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -203,8 +209,29 @@ public:
     }
 
 private:
-    // ONE-TIME USE OBJECTS
-    VmaAllocator vmaAllocator;
+    #if USING_VMA
+        // ONE-TIME USE OBJECTS
+        VmaAllocator vmaAllocator;
+        
+        VmaAllocation vertexBufferAllocation;
+        std::vector<VmaAllocation> uniformBuffersAllocations;
+        VmaAllocation textureImageAllocation;
+        VmaAllocation depthImageAllocation;
+        VmaAllocation colorImageAllocation;
+        VmaAllocation indexBufferAllocation;
+
+    #else
+       // Pointers to a memory allocation made for the index data 
+
+        VkDeviceMemory colorImageAllocation;
+        VkDeviceMemory vertexBufferAllocation;
+        VkDeviceMemory indexBufferAllocation;
+        std::vector<VkDeviceMemory> uniformBuffersAllocations;
+        VkDeviceMemory textureImageAllocation;
+        VkDeviceMemory depthImageAllocation;
+
+    #endif
+
     // platform agnostic window 
     GLFWwindow* window;
     // VkInstance inits the vulkan lib, and allows the app to pass info about itself to the implementation
@@ -252,19 +279,10 @@ private:
     std::vector<uint32_t> indices;
      // A Vulkan buffer holds an allocation of memory for whatever we want to use it for. This will be used for vertex input data
     VkBuffer vertexBuffer;
-    VmaAllocation vertexBufferAllocation;
-    // A pointer to a memory allocation made for the vertex data
-    // VkDeviceMemory vertexBufferMemory;
     // Buffer for indices
     VkBuffer indexBuffer;
-    // A pointer to a memory allocation made for the index data 
-    // VkDeviceMemory indexBufferMemory;
-    VmaAllocation indexBufferAllocation;
     // Buffers handling the uniform buffers for each frame in flight
     std::vector<VkBuffer> uniformBuffers;
-    // Pointers to the memories related to the buffers
-    // std::vector<VkDeviceMemory> uniformBuffersMemory;
-    std::vector<VmaAllocation> uniformBuffersAllocations;
     // Maintains a pool of descriptors, from which descriptor sets are allocated
     VkDescriptorPool descriptorPool;
     // A descriptor is a way for shaders to freely access resources like buffers and images
@@ -277,14 +295,8 @@ private:
     VkImageView textureImageView;
     // The object that describes how texels are sampled from texture images 
     VkSampler textureSampler;
-    // Pointers to the texture image buffer memory
-    // VkDeviceMemory textureImageMemory;
-    VmaAllocation textureImageAllocation;
     //  Array of information, used for different purposes. This one is for storing depth buffer
     VkImage depthImage;
-    // Points to the buffer memory
-    // VkDeviceMemory depthImageMemory;
-    VmaAllocation depthImageAllocation;
     // Represents continguous range of the image subresources. used since image objects can't be directly used by the pipeline shaders. Contiguous for easy use by the shaders?
     VkImageView depthImageView;
     // Semaphores are sync. primatives that can be used to insert a dependency between queue operations or between a queue operation and the host
@@ -296,9 +308,6 @@ private:
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     // Additional render target to place the multiple samples
     VkImage colorImage;
-    VmaAllocation colorImageAllocation;
-    // Pointers to the color image buffer memory
-    // VkDeviceMemory colorImageMemory;
     // Array of information about the image, and its subresources
     VkImageView colorImageView;
 
@@ -341,7 +350,11 @@ private:
         createSurface();
         pickPhysicalDevice();
         createLogicalDevice();
+
+#if USING_VMA
         createVulkanMemoryAllocator();
+#endif 
+        
         createSwapChain();
         createImageViews();
         createRenderPass();
@@ -378,6 +391,7 @@ private:
         vkDeviceWaitIdle(device);
     }
 
+#if USING_VMA
     void cleanup() {
         cleanupSwapChain();
 
@@ -437,6 +451,55 @@ private:
 
         glfwTerminate();
     }
+#else
+    void cleanup() {
+        cleanupSwapChain();
+
+        vkDestroySampler(device, textureSampler, nullptr);
+        vkDestroyImageView(device, textureImageView, nullptr);
+
+        vkDestroyImage(device, textureImage, nullptr);
+        vkFreeMemory(device, textureImageAllocation, nullptr);
+
+        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+        vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+        vkDestroyBuffer(device, vertexBuffer, nullptr);
+        vkFreeMemory(device, vertexBufferAllocation, nullptr);
+
+        vkDestroyBuffer(device, indexBuffer, nullptr);
+        vkFreeMemory(device, indexBufferAllocation, nullptr);
+
+        for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroyBuffer(device, uniformBuffers[i], nullptr);
+            vkFreeMemory(device, uniformBuffersAllocations[i], nullptr);
+        }
+
+
+        for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);        
+            vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);        
+            vkDestroyFence(device, inFlightFences[i], nullptr);        
+        }
+        
+        vkDestroyCommandPool(device, graphicsCommandPool, nullptr);
+        vkDestroyCommandPool(device, transferCommandPool, nullptr);
+        
+        vkDestroyDevice(device, nullptr);
+
+        if(enableValidationLayers) {
+            DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+        } 
+        
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        vkDestroyInstance(instance, nullptr); // Needs to be the last to destroy, as it is the interface to the vulkan library
+
+        glfwDestroyWindow(window);
+
+        glfwTerminate();
+    }
+
+#endif
 
     /*
     * - An instance is the connection between your application and the vulkan library.  
@@ -806,6 +869,7 @@ private:
         vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &transferQueue);
     }
 
+#if USING_VMA
     /*
     * Create the VmaAllocator, to allocate memory more effectively
     */
@@ -820,6 +884,7 @@ private:
             throw std::runtime_error("failed to create the vma allocator");
         }
     }
+#endif
 
     /*
     * We can use glfw to create a surface platform agnostically
@@ -971,15 +1036,14 @@ private:
     /*
     * Delete all objects related to the swapchain. Necessary when swapchain is refreshed.
     */
+#if USING_VMA
     void cleanupSwapChain() {
         vkDestroyImageView(device, colorImageView, nullptr);
         vkDestroyImage(device, colorImage, nullptr);
-        // vkFreeMemory(device, colorImageMemory, nullptr);
         vmaFreeMemory(vmaAllocator, colorImageAllocation);
 
         vkDestroyImageView(device, depthImageView, nullptr);
         vkDestroyImage(device, depthImage, nullptr);
-        // vkFreeMemory(device, depthImageMemory, nullptr);
         vmaFreeMemory(vmaAllocator, depthImageAllocation);
 
         for(auto framebuffer : swapChainFramebuffers){
@@ -996,6 +1060,31 @@ private:
 
         vkDestroySwapchainKHR(device, swapChain, nullptr);
     }
+#else
+    void cleanupSwapChain() {
+        vkDestroyImageView(device, colorImageView, nullptr);
+        vkDestroyImage(device, colorImage, nullptr);
+        vkFreeMemory(device, colorImageAllocation, nullptr);
+
+        vkDestroyImageView(device, depthImageView, nullptr);
+        vkDestroyImage(device, depthImage, nullptr);
+        vkFreeMemory(device, depthImageAllocation, nullptr);
+
+        for(auto framebuffer : swapChainFramebuffers){
+            vkDestroyFramebuffer(device, framebuffer, nullptr);
+        }
+
+        vkDestroyPipeline(device, graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+        vkDestroyRenderPass(device, renderPass, nullptr);
+        
+        for(auto imageView : swapChainImageViews) {
+            vkDestroyImageView(device, imageView, nullptr);
+        }
+
+        vkDestroySwapchainKHR(device, swapChain, nullptr);
+    }
+#endif
 
     /*
     * For the case that our existing swap chain breaks.
@@ -1102,8 +1191,8 @@ private:
     */
     void createGraphicsPipeline() {
         // 1.
-        auto vertShaderCode = readFile("../shaders/vert.spv");
-        auto fragShaderCode = readFile("../shaders/frag.spv");
+        auto vertShaderCode = readFile("../../../shaders/vert.spv");
+        auto fragShaderCode = readFile("../../../shaders/frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -1504,6 +1593,9 @@ private:
     /*
     *   Creates a buffer that can be used by multiple queue families. At time of writing, specifically graphics and transfer queues
     */ 
+
+#if USING_VMA
+
     void createBuffer(
         VkDeviceSize size, 
         VkBufferUsageFlags usage, 
@@ -1561,9 +1653,55 @@ private:
         vkBindBufferMemory(device, buffer, bufferMemory, 0);*/
     }
 
+#else
+
+    void createBuffer(
+        VkDeviceSize size, 
+        VkBufferUsageFlags usage, 
+        VkMemoryPropertyFlags requiredProperties, 
+        VkMemoryPropertyFlags preferredProperties, 
+        VkBuffer& buffer, 
+        VkDeviceMemory& bufferMemory, 
+        bool concurrentMemory, 
+        std::vector<uint32_t> queueFamilyIndicesUsingBuffer = {}
+    ) {
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size;
+        bufferInfo.usage = usage; // usage can be multipurpose, using bitwise.
+
+        if(concurrentMemory) {
+            bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT; // will be used by both the graphics and transfer queue
+            bufferInfo.queueFamilyIndexCount = queueFamilyIndicesUsingBuffer.size();
+            bufferInfo.pQueueFamilyIndices = queueFamilyIndicesUsingBuffer.data();
+        } else {
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        }
+
+        if(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create vertex buffer");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if(vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+        }
+
+        vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    }
+#endif
+
     /*
     * Creates the buffer for the index data
     */
+#if USING_VMA
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
         
@@ -1607,6 +1745,49 @@ private:
         // vkFreeMemory(device, stagingBufferMemory, nullptr);
         vmaFreeMemory(vmaAllocator, stagingBufferAllocation);
     }
+#else
+    void createIndexBuffer() {
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+        
+        QueueFamilyIndices familyQueueIndices = findQueueFamilies(physicalDevice);  
+        std::vector<uint32_t> familyIndicesUsingBuffers {familyQueueIndices.transferFamily.value(), familyQueueIndices.graphicsFamily.value()};
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+            0,
+            stagingBuffer,
+            stagingBufferMemory,
+            true,
+            familyIndicesUsingBuffers
+        );
+
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indices.data(), (size_t) bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
+            0,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            indexBuffer,
+            indexBufferAllocation,
+            true,
+            familyIndicesUsingBuffers
+        );
+        
+        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+#endif
 
     /*
     * Creates the simple buffers used for uniform data
@@ -1755,6 +1936,8 @@ private:
     *  - Can be used to store vertex data, and many other things
     *  - Need to allocate the space for buffers
     */
+
+#if USING_VMA
     void createVertexBuffer() {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
         QueueFamilyIndices indices = findQueueFamilies(physicalDevice);  
@@ -1795,9 +1978,52 @@ private:
         copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
         vkDestroyBuffer(device, stagingBuffer, nullptr);
-        // vkFreeMemory(device, stagingBufferMemory, nullptr);
         vmaFreeMemory(vmaAllocator, stagingBufferAllocation);
     }
+
+#else
+    void createVertexBuffer() {
+        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);  
+        std::vector<uint32_t> familyIndicesUsingBuffers {indices.transferFamily.value(), indices.graphicsFamily.value()};
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            0,
+            stagingBuffer,
+            stagingBufferMemory, 
+            true,
+            familyIndicesUsingBuffers
+        );
+
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0,  bufferSize, 0, &data);
+        memcpy(data, vertices.data(), (size_t) bufferSize);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+            // DEVICE_LOCAL_BIT - specifies memory allocated with this type is the most efficient for device access
+            0,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            vertexBuffer,
+            vertexBufferAllocation,
+            true,
+            familyIndicesUsingBuffers
+        );
+
+        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+#endif
 
     /*
     * Copies one buffer to another.
@@ -1913,9 +2139,17 @@ private:
         ubo.proj = cam.matrices.perspective;
 
         void* data;
+    
+#if USING_VMA
         vmaMapMemory(vmaAllocator, uniformBuffersAllocations[currentImage], &data);
         memcpy(data, &ubo, sizeof(ubo));
         vmaUnmapMemory(vmaAllocator, uniformBuffersAllocations[currentImage]);
+#else
+        vkMapMemory(device, uniformBuffersAllocations[currentImage], 0,  sizeof(ubo), 0, &data);
+        memcpy(data, &ubo, sizeof(ubo));
+        vkUnmapMemory(device, uniformBuffersAllocations[currentImage]);
+#endif
+    
     }
 
     /*
@@ -2039,6 +2273,9 @@ private:
     /*
     * Loads, creates a staging buffer, then creates an image
     */
+
+#if USING_VMA
+
     void createTextureImage() {
         int texWidth, texHeight, texChannels;
         stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -2115,6 +2352,84 @@ private:
         vmaFreeMemory(vmaAllocator, stagingBufferAllocation);
         // vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
+#else
+    
+    void createTextureImage() {
+        int texWidth, texHeight, texChannels;
+        stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+        if(!pixels) {
+            std::cout << stbi_failure_reason() << std::endl;
+            throw std::runtime_error("failed to load texture image!");
+        }
+
+        mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        std::vector<uint32_t> concurrentIndices = {indices.transferFamily.value(), indices.graphicsFamily.value()}; 
+
+        // std::cout << "staging buffer: " << stagingBuffer << std::endl;
+
+        createBuffer(
+            imageSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            // HOST_VISIBLE_BIT - allocated memory can be mapped for host access. 
+            // HOST_COHERENT_BIT - says flushing not necesary
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+            0,
+            stagingBuffer,
+            stagingBufferMemory,   
+            true,
+            concurrentIndices
+        );
+
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        memcpy(data, pixels, static_cast<size_t>(imageSize));
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        stbi_image_free(pixels);
+
+        createImage(
+            texWidth,
+            texHeight,
+            mipLevels,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            textureImage,
+            textureImageAllocation 
+        );
+
+        transitionImageLayout(
+            textureImage, 
+            VK_FORMAT_R8G8B8A8_SRGB,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            mipLevels
+        );
+
+        copyBufferToImage(
+            stagingBuffer, 
+            textureImage, 
+            static_cast<uint32_t>(texWidth), 
+            static_cast<uint32_t>(texHeight)
+        );
+
+        // GENERATING MIPMAPS TRANSITIONS TO VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ITSELF
+        generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+
+#endif
 
     /*
     * Generates mip maps.
@@ -2226,6 +2541,7 @@ private:
     /*
     * Helper functions that creates an image, and the associated memory
     */ 
+#if USING_VMA
     void createImage(
         uint32_t width, 
         uint32_t height, 
@@ -2260,11 +2576,6 @@ private:
         imageInfo.queueFamilyIndexCount = 2;
         imageInfo.pQueueFamilyIndices = queueFamilyIndices;
 
-        /*
-        if(vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create image!");
-        }*/
-
         VmaAllocationCreateInfo allocCreateInfo {};
         allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO; // VMA_MEMORY_USAGE_AUTO;
 
@@ -2274,8 +2585,46 @@ private:
             std::cout << result << std::endl;
             throw std::runtime_error("failed to create image");
         }
+    }
+#else
+    void createImage(
+        uint32_t width, 
+        uint32_t height, 
+        uint32_t mipLevels,
+        VkSampleCountFlagBits numSamples,
+        VkFormat format, 
+        VkImageTiling tiling, 
+        VkImageUsageFlags usage, 
+        VkMemoryPropertyFlags properties, 
+        VkImage& image, 
+        VkDeviceMemory& imageMemory 
+    ) {
+        VkImageCreateInfo imageInfo {};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = width;
+        imageInfo.extent.height = height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = mipLevels;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = format;
+        imageInfo.tiling = tiling;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = usage;
+        imageInfo.samples = numSamples;
+        imageInfo.flags = 0;
+        
+        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.transferFamily.value()};
 
-        /*
+        imageInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+        imageInfo.queueFamilyIndexCount = 2;
+        imageInfo.pQueueFamilyIndices = queueFamilyIndices;
+
+        if(vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create image!");
+        }
+
         VkMemoryRequirements memRequirements;
         vkGetImageMemoryRequirements(device, image, &memRequirements);
 
@@ -2288,8 +2637,9 @@ private:
             throw std::runtime_error("failed to allocate image memory!");
         }
 
-        vkBindImageMemory(device, image, imageMemory, 0);*/
+        vkBindImageMemory(device, image, imageMemory, 0);
     }
+#endif
 
     /*
     * Creates the view for the texture image. Texture image is unusable by shaders without this view
