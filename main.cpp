@@ -39,6 +39,8 @@
 
 // My Code
 #include <camera.hpp>
+#include "VulkanDevice.hpp"
+#include "VulkanBuffer.hpp"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -724,6 +726,16 @@ private:
             SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
+
+        bool discrete = deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+        std::cout << "discrete GPU: " << discrete << std::endl;
+        std::cout << "geometry shader: " << deviceFeatures.geometryShader  << std::endl;
+        std::cout << "sampler ansiotropy: " << deviceFeatures.samplerAnisotropy << std::endl;
+        std::cout << "featuresSupported: " << featuresSupported << std::endl;
+        std::cout << "swapChainAdequate: " << swapChainAdequate << std::endl;
+        std::cout << "indices.isComplete(): " << indices.isComplete() << std::endl;
+        std::cout << "extensionsSupported: " << extensionsSupported << std::endl;
+
         
         return indices.isComplete() && extensionsSupported && swapChainAdequate && featuresSupported;
     }

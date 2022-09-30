@@ -17,3 +17,9 @@ Post-Processing
 Performance Metrics
 
 .gltf
+
+
+
+Breaking Out the concept of the "Device"!
+ - If there is an issue with a group, like the transfer family, mark it on the device
+    - increases coverage
