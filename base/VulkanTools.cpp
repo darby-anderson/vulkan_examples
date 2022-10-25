@@ -37,6 +37,95 @@ namespace tools {
         }
 
     }
+   
+    VkPhysicalDevice findAppropriatePhysicalDevice(std::vector<VkPhysicalDevice> devices, VkSurfaceKHR surface, VulkanPhysicalDeviceSettings settings){
+        
+        for(VkPhysicalDevice device : devices) {
+
+            // Check features
+            VkPhysicalDeviceProperties deviceProperties;
+            vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+            if(settings.deviceType != deviceProperties.deviceType) {
+                std::cout << "Device does not support requested device type" << std::endl;
+                continue;
+            }
+
+            VkPhysicalDeviceFeatures deviceFeatures;
+            vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+            if(settings.supportsGeometryShader && !deviceFeatures.geometryShader) {
+                std::cout << "Device does not support requested geometry shader" << std::endl;
+                continue;
+            }
+
+            if(settings.supportsSamplerAnisotropy && !deviceFeatures.samplerAnisotropy) {
+                std::cout << "Device does not support requested sampler anisotropy" << std::endl;
+                continue;
+            }
+
+            // Check the queue families
+            uint32_t queueFamilyCount = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+            std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+            vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+            bool queueFamilyMatchFound = false;
+            for(const auto& queueFamily : queueFamilies) {
+                if((queueFamily.queueFlags & settings.queueFlagsSupported) == settings.queueFlagsSupported) {
+                    queueFamilyMatchFound = true;
+                    break;
+                }
+            }
+
+            if(!queueFamilyMatchFound) {
+                std::cout << "Device does not support requested queue family" << std::endl;
+                continue;
+            }
+
+            // Extension Support
+            uint32_t extensionCount;
+            vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+            std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+            vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+            std::set<std::string> requiredExtensions (settings.deviceExtensions.begin(), settings.deviceExtensions.end());
+
+            for(const auto& extension : availableExtensions) {
+                requiredExtensions.erase(extension.extensionName);
+            }
+
+            if(!requiredExtensions.empty()) {
+                std::cout << "Missing requested extensions on device: " << std::endl;
+                for(std::string extensionName : requiredExtensions) {
+                    std::cout << extensionName << std::endl;
+                }
+                continue;
+            }
+
+            // Swapchain Support
+            uint32_t formatCount;
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+
+            if(formatCount == 0) {
+                std::cout << "Physical device supports no surface formats" << std::endl;
+                continue;
+            }
+
+            uint32_t presentModeCount;
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+
+            if(presentModeCount == 0){
+                std::cout << "Physical device supports no present modes" << std::endl;
+                continue;
+            }
+
+            return device;
+        }
+
+        return VK_NULL_HANDLE;
+    }
+
 
 }
 }

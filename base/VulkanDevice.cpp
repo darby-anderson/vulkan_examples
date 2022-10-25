@@ -101,7 +101,7 @@ uint32_t VulkanDevice::getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags pr
  * @brief Get the index of a queue family that supports the requested queue flags
  * SRS - support the VkQueueFlags parameter for requesting multiple flags vs. VkQueueFlagBits for a single flag only
  * 
- * @param queueFlags  Queue aflgas to find a queue family index for
+ * @param queueFlags  Queue flags to find a queue family index for
  * @return uint32_t Index of the queue family index that matches the flags
  * 
  * @throw Throws an exception if no queue family index could be found that supports the requested flags
@@ -120,7 +120,7 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const {
 
     // Dedicated queue for transfer 
     // Try to find a queue family index that supports transfer but not graphics or compute
-    if((queueFlags & VK_QUEUE_COMPUTE_BIT) == queueFlags) {
+    if((queueFlags & VK_QUEUE_TRANSFER_BIT) == queueFlags) {
         for(uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++) {
             if((queueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
                 ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && 
@@ -140,18 +140,34 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const {
     throw std::runtime_error("Could not find a matching queue family index");
 }
 
+uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
+    // For other queue types than transfer, and compute, and all others, return the first queue that supports the flags
+    for(uint32_t i = 0; i < static_cast<uint32_t>(queueFamilyProperties.size()); i++) {
+    
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &presentSupport);
+
+        if(presentSupport) {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("Could not find a present queue"); 
+}
+
 
     /**
      * @brief Create the logical device based on the assigned physical device, also gets default queue family indices
      * 
      * @param enabledFeatures Can be used to enable certain features on device creation
      * @param enabledExtensions A list of extensions attempted to be enabled on the device level
+     * @param enabledLayers A list of the validation layers to be activated
      * @param pNextChain (Optional) chain of pointers to extension structures
      * @param useSwapChain (Optional) Set to flase for ehealess rendering to omit the swapchain device extensions
      * @param requestedQueueTypes (Optional) Bit flags specifiying the queue types to be requested from the device 
      * @return VkResult 
      */
-    VkResult VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void *pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes){
+    VkResult VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, std::vector<const char*> enabledLayers, void *pNextChain, bool useSwapChain, VkQueueFlags requestedQueueTypes){
 
         // Desired queues need to be requested upon logical device creation
         // Due to differing queue family configurations of Vulkan implementations this can be tricky, 
@@ -253,6 +269,11 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const {
         }
 
         this->enabledFeatures = enabledFeatures;
+
+        if(enabledLayers.size() > 0) {
+            deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(enabledLayers.size());
+            deviceCreateInfo.ppEnabledLayerNames = enabledLayers.data();        
+        }
 
         VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
         if(result != VK_SUCCESS) {
@@ -503,6 +524,14 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const {
         return (std::find(supportedExtensions.begin(), supportedExtensions.end(), extension) != supportedExtensions.end());
     }
 
+    /**
+     * @brief Select the best depth format for this device from a list of possible depth (or stencil) formats
+     * 
+     * @param checkSamplingSupport Checks if the format can be sampled from (like shader reads)
+     * @return VkFormat 
+     * 
+     * @throw Throws an exception when no depth format fits our requirements
+     */
     VkFormat VulkanDevice::getSupportedDepthFormat(bool checkSamplingSupport) {
         // All depth formats may be optional, so we need to find a suitable depth format to use
         std::vector<VkFormat> depthFormats = { VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_D16_UNORM };
@@ -522,6 +551,38 @@ uint32_t VulkanDevice::getQueueFamilyIndex(VkQueueFlags queueFlags) const {
             }
         }
         throw std::runtime_error("Could not find a matching depth format"); 
+    }
+
+
+    /**
+     * @brief Get the Max Usable Sample Count available to this device 
+     * 
+     * @return VkSampleCountFlagBits 
+     */
+    VkSampleCountFlagBits VulkanDevice::getMaxUsableSampleCount() {
+        VkSampleCountFlags counts = this->properties.limits.framebufferColorSampleCounts & 
+                                    this->properties.limits.framebufferDepthSampleCounts; 
+    
+        if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+        if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+        if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+        if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+        if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+        if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+        
+        return VK_SAMPLE_COUNT_1_BIT;
+    }
+
+    /**
+     * @brief Get the Vulkan Api Version 
+     * 
+     * @return uint32_t 
+     */
+    uint32_t VulkanDevice::getVulkanApiVersion() {
+        VkPhysicalDeviceProperties physicalDeviceProperties;
+        vkGetPhysicalDeviceProperties(this->physicalDevice, &physicalDeviceProperties);
+
+        return physicalDeviceProperties.apiVersion;
     }
 
 };

@@ -1,11 +1,18 @@
 #include <iostream>
 #include <camera.hpp>
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.hpp>
+
+#include "VulkanTools.hpp"
 
 int main() {
 
-	camera cam;
-	cam.fov = 30;
+	vub::camera cam;
 
-	std::cout << "fov " << cam.fov << std::endl;
+	std::string my_err = vub::tools::errorString(VK_SUCCESS);
+
+	cam.position = glm::vec3(1.0);
+
+	std::cout << "pos x " << cam.position.x << std::endl;
 
 }
