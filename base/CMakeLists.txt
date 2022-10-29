@@ -9,6 +9,8 @@ add_library(
 	"VulkanBuffer.cpp"
 	"VulkanDevice.hpp"
 	"VulkanDevice.cpp"
+	"VulkanTexture.hpp"
+	"VulkanTexture.cpp"
 	"VulkanTools.hpp"
 	"VulkanTools.cpp"
 )

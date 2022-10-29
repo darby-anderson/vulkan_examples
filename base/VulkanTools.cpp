@@ -126,6 +126,55 @@ namespace tools {
         return VK_NULL_HANDLE;
     }
 
+    /**
+     * @brief Create an image memory barrier for changing the layout of an image
+     *  and put it into an active command buffer.
+     *  
+     * 
+     * @param cmdBuffer the buffer in which to place the barrier
+     * @param image the image which is having its layout changed
+     * @param oldImageLayout the current image layout of the image
+     * @param newImageLayout the image layout to switch to 
+     * @param subresourceRange the image subresource range within the image to be affected by the barrier
+     * @param srcStageMask the first synchronization/access scope -> the image operations in this stage must occur before those specified in dstStageMask 
+     * @param dstStageMask the second synchronization/access scope -> the image operations must wait until srcStageMask's operations are complete 
+     */
+    void setImageLayout(
+        VkCommandBuffer cmdBuffer,
+        VkImage image,
+        VkImageLayout oldImageLayout,
+        VkImageLayout newImageLayout,
+        VkImageSubresourceRange subresourceRange,
+        VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+    ) 
+    {
+        // Create an image barrier object
+        VkImageMemoryBarrier imageMemoryBarrier = vub::initializers::imageMemoryBarrier();
+        imageMemoryBarrier.oldLayout = oldImageLayout;
+        imageMemoryBarrier.newLayout = newImageLayout;
+        imageMemoryBarrier.image = image;
+        imageMemoryBarrier.subresourceRange = subresourceRange;
+
+        // START HERE: https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanTexture.cpp
+
+    }
+
+    void setImageLayout(
+        VkCommandBuffer cmdBuffer,
+        VkImage image,
+        VkImageAspectFlags aspectMask,
+        VkImageLayout oldImageLayout,
+        VkImageLayout newImageLayout,
+        VkImageSubresourceRange subresourceRange,
+        VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+    )
+    {
+
+
+    }
+
 
 }
 }
