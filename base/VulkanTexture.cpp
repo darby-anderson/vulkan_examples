@@ -138,12 +138,72 @@ void Texture2D::fromBuffer(
 
 	// Image barrier for optimal image
 	// Optimal image will be used as destination for the copy
+	vub::tools::setImageLayout(
+		copyCmd,
+		image,
+		VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		subresourceRange
+	);
 
-	
+	// Copy mip levels from staging buffer
+	vkCmdCopyBufferToImage(
+		copyCmd,
+		stagingBuffer,
+		image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		1,
+		&bufferCopyRegion
+	);
 
+	// Change texture image layout to  for the shader-read after all mip levels have been copied
+	this->imageLayout = imageLayout;
+	vub::tools::setImageLayout(
+		copyCmd,
+		image,
+		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		imageLayout,
+		subresourceRange
+	);
+
+	// Submit my commands to the queue
+	device->flushCommandBuffer(copyCmd, copyQueue);
+
+	// Clean up the staging resources
+	vkFreeMemory(device->logicalDevice, stagingMemory, nullptr);
+	vkDestroyBuffer(device->logicalDevice, stagingBuffer, nullptr);
+
+	// Create sampler
+	VkSamplerCreateInfo samplerCreateInfo = {};
+	samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerCreateInfo.magFilter = filter;
+	samplerCreateInfo.minFilter = filter;
+	samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerCreateInfo.mipLodBias = 0.0f;
+	samplerCreateInfo.compareOp = VK_COMPARE_OP_NEVER;
+	samplerCreateInfo.minLod = 0.0f;
+	samplerCreateInfo.maxLod = 0.0f;
+	samplerCreateInfo.maxAnisotropy = 1.0f;
+	VUB_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerCreateInfo, nullptr, &sampler));
+
+	// Create image view
+	VkImageViewCreateInfo viewCreateInfo = {};
+	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewCreateInfo.pNext = NULL;
+	viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewCreateInfo.format = format;
+	viewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+	viewCreateInfo.subresourceRange =  { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+	viewCreateInfo.subresourceRange.levelCount = 1;
+	viewCreateInfo.image = image;
+	VUB_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewCreateInfo, nullptr, &view));
+
+	// Update descriptor image info member that can be used for setting up descriptor sets
+	updateDescriptor();
 
 }
-
-
 
 }

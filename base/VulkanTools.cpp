@@ -145,8 +145,8 @@ namespace tools {
         VkImageLayout oldImageLayout,
         VkImageLayout newImageLayout,
         VkImageSubresourceRange subresourceRange,
-        VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-        VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+        VkPipelineStageFlags srcStageMask,
+        VkPipelineStageFlags dstStageMask
     ) 
     {
         // Create an image barrier object
@@ -156,7 +156,109 @@ namespace tools {
         imageMemoryBarrier.image = image;
         imageMemoryBarrier.subresourceRange = subresourceRange;
 
-        // START HERE: https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanTexture.cpp
+        // Source layouts (old)
+        // Source access mask controls actions that have to be finished on the old layout
+        // before it will be transitioned to the new layout
+        switch(oldImageLayout){
+            case VK_IMAGE_LAYOUT_UNDEFINED:
+                // Image layout is undefined (or doesn't matter)
+                // Only valid as initial layout
+                // No flags required, listed only for completeness
+                imageMemoryBarrier.srcAccessMask = 0;
+                break;
+
+            case VK_IMAGE_LAYOUT_PREINITIALIZED:
+                // Image is preinitialized
+                // Only valid as initial layout for linear images, preserves memory contents
+                // Make sure host writes have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                // Image is a color attachment
+                // Make sure any writes to the depth/stencil buffer have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                // Image is a color attachment
+                // Make sure any writes to the depth/stencil buffer have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                // Image is a transfer source
+				// Make sure any reads from the image have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                // Image is a transfer destination
+				// Make sure any writes to the image have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                // Image is a transfer destination
+                // Make sure any writes to the image have been finished
+                imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                break;
+
+            default:
+                break;
+        }
+
+        // Target layouts (new)
+        // Destination access mask controls the dependency for the new image layout
+        switch(newImageLayout)
+        {
+            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+                // Image will be used as a transfer destination
+                // Make sure any writes to the image have been finished
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                break;
+            
+            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+                // Image will be used as a transfer source
+                // Make sure any reads from the image have been finished
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+                // Image will be used as a color attachment
+                // Make sure any writes to the color buffer have been finished
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+                // Image layout will be used as a depth/stencil attachment
+                // Make sure any writes to depth/stencil buffer have been finished
+                imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                break;
+
+            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+                // Image will be read in a shader (sampler, input attachment)
+                // Make sure any writes to the image have been finished
+                if(imageMemoryBarrier.srcAccessMask == 0) {
+                    imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+                }
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                break;
+            
+            default:
+                break;
+        }
+
+        // Put barrier in setup command buffer
+        vkCmdPipelineBarrier(
+            cmdBuffer,
+            srcStageMask,
+            dstStageMask,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &imageMemoryBarrier
+        );
 
     }
 
@@ -167,12 +269,16 @@ namespace tools {
         VkImageLayout oldImageLayout,
         VkImageLayout newImageLayout,
         VkImageSubresourceRange subresourceRange,
-        VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-        VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+        VkPipelineStageFlags srcStageMask,
+        VkPipelineStageFlags dstStageMask
     )
     {
-
-
+        VkImageSubresourceRange subresouceRanage = {};
+        subresouceRanage.aspectMask = aspectMask;
+        subresouceRanage.baseMipLevel = 0;
+        subresouceRanage.levelCount = 1;
+        subresouceRanage.layerCount = 1;
+        setImageLayout(cmdBuffer, image, oldImageLayout, newImageLayout, subresouceRanage, srcStageMask, dstStageMask);
     }
 
 
