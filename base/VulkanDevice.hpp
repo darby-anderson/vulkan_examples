@@ -1,6 +1,7 @@
 /*
 * Encapsulates a physical and logical device
 */
+#pragma once
 
 #include "VulkanBuffer.hpp"
 #include "VulkanTools.hpp"
@@ -32,7 +33,7 @@ struct VulkanDevice {
     /** @brief List of extensions supported by the device */
     std::vector<std::string> supportedExtensions;
     /** @brief Default command pool for the graphics queue family index */
-    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkCommandPool graphicsQueueCommandPool = VK_NULL_HANDLE;
     /** @brief Set to true when the debug marker extension is detected */
     bool enableDebugMarkers = false;
 
@@ -56,7 +57,8 @@ struct VulkanDevice {
     VkResult        createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, std::vector<const char*> enabledLayers, void *pNextChain, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
     VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer *buffer, VkDeviceMemory *memory, void *data = nullptr);
     VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vub::Buffer *buffer, VkDeviceSize size, void *data = nullptr);
-    void            copyBuffer(vub::Buffer *src, vub::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr);
+    void copyBuffer(vub::Buffer *src, vub::Buffer *dst, VkQueue queue, VkCommandPool commandPool,
+                    VkBufferCopy *copyRegion = nullptr);
     VkCommandPool   createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
     VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, VkCommandPool pool, bool begin = false);
     VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin = false);

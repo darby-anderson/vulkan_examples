@@ -57,8 +57,8 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice)
  * @note frees the logical device and command pool
  */
 VulkanDevice::~VulkanDevice(){
-    if(commandPool) {
-        vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+    if(graphicsQueueCommandPool) {
+        vkDestroyCommandPool(logicalDevice, graphicsQueueCommandPool, nullptr);
     }
     if(logicalDevice) {
         vkDestroyDevice(logicalDevice, nullptr);
@@ -281,7 +281,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
         }
 
         // Create a default command pool for graphics command buffers
-        commandPool = createCommandPool(queueFamilyIndices.graphics);
+        graphicsQueueCommandPool = createCommandPool(queueFamilyIndices.graphics);
 
         return result;
     }
@@ -363,7 +363,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
         VkBufferCreateInfo bufferCreateInfo = vub::initializers::bufferCreateInfo(usageFlags, size);
         VUB_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer));
 
-        // Create the meory backing up the buffer handle
+        // Create the memory backing up the buffer handle
         VkMemoryRequirements memReqs;
         VkMemoryAllocateInfo memAlloc = vub::initializers::memoryAllocateInfo();
         vkGetBufferMemoryRequirements(logicalDevice, buffer->buffer, &memReqs);
@@ -406,16 +406,17 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
      * 
      * @param src Pointer to the source buffer to copy from
      * @param dst Pointer to the destination buffer to copy to
-     * @param queue Pointer
-     * @param copyRegion (Optional) pointer to a copt region, if NULL the whole buffer is copied
+     * @param commandPool Pointer
+     * @param copyRegion (Optional) pointer to a copy region, if NULL the whole buffer is copied
      * 
-     * @note Source and destinatino pointers must have the appropritae transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
+     * @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
      */
-    void VulkanDevice::copyBuffer(vub::Buffer *src, vub::Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion) {
+    void VulkanDevice::copyBuffer(vub::Buffer *src, vub::Buffer *dst, VkQueue queue, VkCommandPool commandPool,
+                                  VkBufferCopy *copyRegion) {
         assert(dst->size <= src->size);
         assert(src->buffer);
 
-        VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, commandPool, true);
         VkBufferCopy bufferCopy{};
         if(copyRegion == nullptr) {
             bufferCopy.size = src->size;
@@ -425,7 +426,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
 
         vkCmdCopyBuffer(copyCmd, src->buffer, dst->buffer, 1, &bufferCopy);
 
-        flushCommandBuffer(copyCmd, queue);
+        flushCommandBuffer(copyCmd, queue, commandPool);
     }
 
     /**
@@ -468,7 +469,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
     }
 
     VkCommandBuffer VulkanDevice::createCommandBuffer(VkCommandBufferLevel level, bool begin) {
-        return createCommandBuffer(level, commandPool, begin);
+        return createCommandBuffer(level, graphicsQueueCommandPool, begin);
     }
 
     /**
@@ -493,7 +494,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
         VkSubmitInfo submitInfo = vub::initializers::submitInfo();
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
-        // Create frence to ensure that the command buffer has finished executing
+        // Create fence to ensure that the command buffer has finished executing
         VkFenceCreateInfo fenceInfo = vub::initializers::fenceCreateInfo(VK_FLAGS_NONE);
         VkFence fence;
         VUB_CHECK_RESULT(vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence));
@@ -508,7 +509,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
     }
 
     void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free) {
-        return flushCommandBuffer(commandBuffer, queue, commandPool, free);
+        return flushCommandBuffer(commandBuffer, queue, graphicsQueueCommandPool, free);
     }
 
     /**

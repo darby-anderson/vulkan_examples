@@ -6,12 +6,12 @@
 message(STATUS "STARTING")
 
 cmake_minimum_required(VERSION 3.20)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
 project(VulkanExamples)
 
 # specify the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # dependencies
 find_package(tinyobjloader CONFIG REQUIRED)
@@ -24,7 +24,8 @@ find_package(glm CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb.h")
 
 add_executable(${PROJECT_NAME} main.cpp)
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
+# target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
 # target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/libs/VulkanMemoryAllocatord.lib)
 # target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/external_includes)

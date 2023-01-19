@@ -15,7 +15,8 @@ add_library(
 	"VulkanTools.cpp"
 )
 
-target_link_libraries( base 
+target_link_libraries(
+	base
 	PRIVATE 
 	Vulkan::Vulkan
 )

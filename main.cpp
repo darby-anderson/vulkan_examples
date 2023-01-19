@@ -21,12 +21,12 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <filesystem>
 #include <set>
 #include <cstring>
 #include <optional>
 #include <array>
 #include <unordered_map>
-
 #include <cstdint> // necessary for uint32_t
 #include <limits> // necessary for std::numeric_limits
 #include <algorithm> // necessary for std::clamp
@@ -36,12 +36,13 @@
 #include "VulkanDevice.hpp"
 #include "VulkanBuffer.hpp"
 #include "VulkanTools.hpp"
+#include "VulkanTexture.hpp"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::string MODEL_PATH = "../../../models/bell_x1-low_resolution-obj/bell_x1_mesh.obj"; 
-const std::string TEXTURE_PATH = "../../../models/bell_x1-low_resolution-obj/bell_x1_diffuse.jpg";
+const std::string MODEL_PATH = "../models/bell_x1-low_resolution-obj/bell_x1_mesh.obj";
+const std::string TEXTURE_PATH = "../models/bell_x1-low_resolution-obj/bell_x1_diffuse.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -192,14 +193,11 @@ private:
     
     // Pointers to a memory allocation made for the index data 
 
-    VkDeviceMemory colorImageAllocation;
     VkDeviceMemory vertexBufferAllocation;
     VkDeviceMemory indexBufferAllocation;
     std::vector<VkDeviceMemory> uniformBuffersAllocations;
-    VkDeviceMemory textureImageAllocation;
-    VkDeviceMemory depthImageAllocation;
 
-    // platform agnostic window 
+    // platform-agnostic window
     GLFWwindow* window;
     // VkInstance inits the vulkan lib, and allows the app to pass info about itself to the implementation
     VkInstance instance;
@@ -207,7 +205,7 @@ private:
     VkDebugUtilsMessengerEXT debugMessenger;
     // The logical device
     // VkDevice device;
-    // Separates logcal and physical devices. A physical device usually represents a single complete implementation of Vulkan available to the host
+    // Separates logical and physical devices. A physical device usually represents a single complete implementation of Vulkan available to the host
     // VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     // The queues created along with device creation
     VkQueue graphicsQueue;
@@ -225,7 +223,7 @@ private:
     VkExtent2D swapChainExtent;
     // Represents contiguous range of the image subresources. used since image objects can't be directly used by the pipeline shaders
     std::vector<VkImageView> swapChainImageViews;
-    // Represents a collection of attachments, subpasses and dependencies between the subpasses, and descibes how the attachments are used
+    // Represents a collection of attachments, subpasses and dependencies between the subpasses, and describes how the attachments are used
     VkRenderPass renderPass;
     // An array of zero or more descriptor bindings.
     VkDescriptorSetLayout descriptorSetLayout;
@@ -245,9 +243,9 @@ private:
     // Stores obj file's indices
     std::vector<uint32_t> indices;
      // A Vulkan buffer holds an allocation of memory for whatever we want to use it for. This will be used for vertex input data
-    VkBuffer vertexBuffer;
+    // VkBuffer vertexBuffer;
     // Buffer for indices
-    VkBuffer indexBuffer;
+    // VkBuffer indexBuffer;
     // Buffers handling the uniform buffers for each frame in flight
     std::vector<VkBuffer> uniformBuffers;
     // Maintains a pool of descriptors, from which descriptor sets are allocated
@@ -256,27 +254,25 @@ private:
     std::vector<VkDescriptorSet> descriptorSets;
     // number of mip-maps to generate for our texture image
     uint32_t mipLevels;
+    /*
     // Array of data that can be used for various purposes, in this case a texture
     VkImage textureImage;
     // Represents contiguous range of the image subresources. used since image objects can't be directly used by the pipeline shaders
     VkImageView textureImageView;
     // The object that describes how texels are sampled from texture images 
     VkSampler textureSampler;
-    //  Array of information, used for different purposes. This one is for storing depth buffer
-    VkImage depthImage;
-    // Represents continguous range of the image subresources. used since image objects can't be directly used by the pipeline shaders. Contiguous for easy use by the shaders?
-    VkImageView depthImageView;
-    // Semaphores are sync. primatives that can be used to insert a dependency between queue operations or between a queue operation and the host
+    */
+
+    // Semaphores are sync. primitives that can be used to insert a dependency between queue operations or between a queue operation and the host
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     // sync primitive that can be used to insert a dependency from a queue to the host
     std::vector<VkFence> inFlightFences;
     // Number of samples to take to reduces aliasing
     // VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    // Additional render target to place the multiple samples
-    VkImage colorImage;
+    //VkImage colorImage;
     // Array of information about the image, and its subresources
-    VkImageView colorImageView;
+    //VkImageView colorImageView;
 
     // Vulkan's current API version
     uint32_t vulkanAPIVersion;
@@ -290,6 +286,23 @@ private:
     // My Objects
     vub::camera cam;
     vub::VulkanDevice *vulkanDevice;
+    vub::Texture2D texture;
+
+    vub::Buffer vertexBuffer;
+    vub::Buffer indexBuffer;
+
+    struct {
+        VkImage image;    // Array of information, used for different purposes. This one is for storing depth buffer
+        VkDeviceMemory mem;
+        VkImageView view; // Represents contiguous range of the image sub-resources. used since image objects can't be directly used by the pipeline shaders. Contiguous for easy use by the shaders?
+    } depthStencil;
+
+    // Additional render target to place the multiple samples
+    struct {
+        VkImage image;
+        VkDeviceMemory mem;
+        VkImageView view;
+    } sampleRenderTarget;
     
 
     void initWindow() {
@@ -326,9 +339,10 @@ private:
         createColorResources();
         createDepthResources();
         createFramebuffers();
-        createTextureImage();
-        createTextureImageView();
-        createTextureSampler();
+        createVulkanTexture();
+        // createTextureImage();
+        // createTextureImageView();
+        // createTextureSampler();
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
@@ -357,20 +371,20 @@ private:
     void cleanup() {
         cleanupSwapChain();
 
-        vkDestroySampler(vulkanDevice->logicalDevice, textureSampler, nullptr);
-        vkDestroyImageView(vulkanDevice->logicalDevice, textureImageView, nullptr);
-
-        vkDestroyImage(vulkanDevice->logicalDevice, textureImage, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, textureImageAllocation, nullptr);
-
         vkDestroyDescriptorPool(vulkanDevice->logicalDevice, descriptorPool, nullptr);
         vkDestroyDescriptorSetLayout(vulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
 
+        /*
         vkDestroyBuffer(vulkanDevice->logicalDevice, vertexBuffer, nullptr);
         vkFreeMemory(vulkanDevice->logicalDevice, vertexBufferAllocation, nullptr);
+        */
 
-        vkDestroyBuffer(vulkanDevice->logicalDevice, indexBuffer, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, indexBufferAllocation, nullptr);
+        vertexBuffer.destroy();
+        indexBuffer.destroy();
+        texture.destroy();
+
+        /*vkDestroyBuffer(vulkanDevice->logicalDevice, indexBuffer, nullptr);
+        vkFreeMemory(vulkanDevice->logicalDevice, indexBufferAllocation, nullptr);*/
 
         for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             vkDestroyBuffer(vulkanDevice->logicalDevice, uniformBuffers[i], nullptr);
@@ -387,7 +401,8 @@ private:
         vkDestroyCommandPool(vulkanDevice->logicalDevice, graphicsCommandPool, nullptr);
         vkDestroyCommandPool(vulkanDevice->logicalDevice, transferCommandPool, nullptr);
         
-        vkDestroyDevice(vulkanDevice->logicalDevice, nullptr);
+        // vkDestroyDevice(vulkanDevice->logicalDevice, nullptr);
+        delete vulkanDevice;
 
         if(enableValidationLayers) {
             DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
@@ -808,13 +823,13 @@ private:
     * Delete all objects related to the swapchain. Necessary when swapchain is refreshed.
     */
     void cleanupSwapChain() {
-        vkDestroyImageView(vulkanDevice->logicalDevice, colorImageView, nullptr);
-        vkDestroyImage(vulkanDevice->logicalDevice, colorImage, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, colorImageAllocation, nullptr);
+        vkDestroyImageView(vulkanDevice->logicalDevice, sampleRenderTarget.view, nullptr);
+        vkDestroyImage(vulkanDevice->logicalDevice, sampleRenderTarget.image, nullptr);
+        vkFreeMemory(vulkanDevice->logicalDevice, sampleRenderTarget.mem, nullptr);
 
-        vkDestroyImageView(vulkanDevice->logicalDevice, depthImageView, nullptr);
-        vkDestroyImage(vulkanDevice->logicalDevice, depthImage, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, depthImageAllocation, nullptr);
+        vkDestroyImageView(vulkanDevice->logicalDevice, depthStencil.view, nullptr);
+        vkDestroyImage(vulkanDevice->logicalDevice, depthStencil.image, nullptr);
+        vkFreeMemory(vulkanDevice->logicalDevice, depthStencil.mem, nullptr);
 
         for(auto framebuffer : swapChainFramebuffers){
             vkDestroyFramebuffer(vulkanDevice->logicalDevice, framebuffer, nullptr);
@@ -935,9 +950,13 @@ private:
     *  11. Create the pipeline
     */
     void createGraphicsPipeline() {
+
+        std::filesystem::path cwd = std::filesystem::current_path();
+        std::cout << cwd.string() << std::endl;
+
         // 1.
-        auto vertShaderCode = readFile("../../../shaders/vert.spv");
-        auto fragShaderCode = readFile("../../../shaders/frag.spv");
+        auto vertShaderCode = readFile("../shaders/vert.spv");
+        auto fragShaderCode = readFile("../shaders/frag.spv");
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -1126,7 +1145,7 @@ private:
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription depthAttachment {};
-        depthAttachment.format = findDepthFormat();
+        depthAttachment.format = vulkanDevice->getSupportedDepthFormat(false);
         depthAttachment.samples = vulkanDevice->getMaxUsableSampleCount();
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -1191,10 +1210,10 @@ private:
     /*
     * Framebuffer: A portion of RAM containing a bitmap that drives a video display
     * The attachments specified during render pass creation are bound by wrapping them in a VkFramebuffer object.
-    * A framebuffer object references all of the VkImageView objects that represent the attachments.
+    * A framebuffer object references all the VkImageView objects that represent the attachments.
     * Currently we only are using the color attachment. However, the image that we have to use for the
     * attachment depends on which image the swap chain returns when we retrieve one for presentation.
-    * That means we have to create a framebuffer for all of the images in the swap chain and use
+    * That means we have to create a framebuffer for all the images in the swap chain and use
     * the one that corresponds to the retreived image at drawing time. 
     * 
     * Essentially the place to throw the data about images.
@@ -1205,8 +1224,8 @@ private:
         for(size_t i = 0;  i < swapChainImageViews.size(); i++) {
 
             std::array<VkImageView, 3> attachments = {
-                colorImageView,
-                depthImageView,
+                sampleRenderTarget.view,
+                depthStencil.view,
                 swapChainImageViews[i]
             };
 
@@ -1242,60 +1261,110 @@ private:
 
     /*
     * Create color resources
-    */ 
+    */
     void createColorResources() {
+
         VkFormat colorFormat = swapChainImageFormat;
 
-        createImage(
-            swapChainExtent.width,
-            swapChainExtent.height,
-            1,
-            vulkanDevice->getMaxUsableSampleCount(),
-            colorFormat,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            colorImage,
-            colorImageAllocation
-        );
+        VkImageCreateInfo imageCI {};
+        imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = swapChainImageFormat;
+        imageCI.extent.width = swapChainExtent.width;
+        imageCI.extent.height = swapChainExtent.height;
+        imageCI.extent.depth = 1;
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        imageCI.samples = vulkanDevice->getMaxUsableSampleCount();
+        imageCI.flags = 0;
 
-        colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        VUB_CHECK_RESULT(vkCreateImage(vulkanDevice->logicalDevice, &imageCI, nullptr, &sampleRenderTarget.image));
+
+        VkMemoryRequirements memReqs{};
+        vkGetImageMemoryRequirements(vulkanDevice->logicalDevice, sampleRenderTarget.image, &memReqs);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memReqs.size;
+        allocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VUB_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &allocInfo, nullptr, &sampleRenderTarget.mem));
+        VUB_CHECK_RESULT(vkBindImageMemory(vulkanDevice->logicalDevice, sampleRenderTarget.image, sampleRenderTarget.mem, 0));
+
+        VkImageViewCreateInfo imageViewCI{};
+        imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCI.image = sampleRenderTarget.image;
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.format = colorFormat;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+
+        VUB_CHECK_RESULT(vkCreateImageView(vulkanDevice->logicalDevice, &imageViewCI, nullptr, &sampleRenderTarget.view));
+        
     }
 
     /*
     * Creates the image, view and memory for depth buffering
     */
     void createDepthResources() {
-        VkFormat depthFormat = findDepthFormat();
+        VkFormat depthFormat = vulkanDevice->getSupportedDepthFormat(false);
 
-        createImage(
-            swapChainExtent.width, 
-            swapChainExtent.height, 
-            1,
-            vulkanDevice->getMaxUsableSampleCount(),
-            depthFormat, 
-            VK_IMAGE_TILING_OPTIMAL, 
-            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-            depthImage, 
-            depthImageAllocation
-        );
+        VkImageCreateInfo imageCI {};
+        imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = depthFormat;
+        imageCI.extent.width = swapChainExtent.width;
+        imageCI.extent.height = swapChainExtent.height;
+        imageCI.extent.depth = 1;
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = vulkanDevice->getMaxUsableSampleCount();
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-        depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+        VUB_CHECK_RESULT(vkCreateImage(vulkanDevice->logicalDevice, &imageCI, nullptr, &depthStencil.image));
+        
+        VkMemoryRequirements memReqs{};
+        vkGetImageMemoryRequirements(vulkanDevice->logicalDevice, depthStencil.image, &memReqs);
 
-        transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memReqs.size;
+        allocInfo.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        VUB_CHECK_RESULT(vkAllocateMemory(vulkanDevice->logicalDevice, &allocInfo, nullptr, &depthStencil.mem));
+        VUB_CHECK_RESULT(vkBindImageMemory(vulkanDevice->logicalDevice, depthStencil.image, depthStencil.mem, 0));
+
+        VkImageViewCreateInfo imageViewCI{};
+        imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCI.image = depthStencil.image;
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.format = depthFormat;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+
+        VUB_CHECK_RESULT(vkCreateImageView(vulkanDevice->logicalDevice, &imageViewCI, nullptr, &depthStencil.view));
+
+        // TODO: is this transition needed ??
+        transitionImageLayout(depthStencil.image, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
     }
 
     /*
     * Uses the findSupportedFormat function to find the best depth format for us.
-    */ 
-    VkFormat findDepthFormat() {
+    */
+    /*VkFormat findDepthFormat() {
         return findSupportedFormat(
             {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
             VK_IMAGE_TILING_OPTIMAL,
             VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
         );
-    }
+    }*/
 
     /*
     * Checks if a specific format supports stencil buffer
@@ -1305,10 +1374,10 @@ private:
     }
 
     /*
-    * Takes a list of candidate formats in order from most desireable to least desirable, and checks
+    * Takes a list of candidate formats in order from most desirable to least desirable, and checks
     * which is the first one that is supported.
     */
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+    /*VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
         for(VkFormat format : candidates) {
             VkFormatProperties props;
             vkGetPhysicalDeviceFormatProperties(vulkanDevice->physicalDevice, format, &props);
@@ -1321,10 +1390,10 @@ private:
         }
 
         throw std::runtime_error("failed to find supported format!");
-    }
+    }*/
 
     
-
+    // TODO
     /*
     *   Creates a buffer that can be used by multiple queue families. At time of writing, specifically graphics and transfer queues
     */ 
@@ -1376,14 +1445,14 @@ private:
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
         
-        uint32_t graphicsQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+        /*uint32_t graphicsQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
         uint32_t transferQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
         std::vector<uint32_t> familyIndicesUsingBuffers {graphicsQueueFamilyIndex, transferQueueFamilyIndex};
 
         VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
+        VkDeviceMemory stagingBufferMemory;*/
 
-        createBuffer(
+        /*createBuffer(
             bufferSize,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -1392,24 +1461,33 @@ private:
             stagingBufferMemory,
             true,
             familyIndicesUsingBuffers
-        );
+        );*/
 
-        vub::Buffer buffer;
-
-        vulkanDevice->createBuffer(
+        vub::Buffer stagingBuffer;
+        VUB_CHECK_RESULT(vulkanDevice->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-            &buffer,
+            &stagingBuffer,
             bufferSize,
             indices.data()
-        );
+        ));
 
-        void* data;
+        /*void* data;
         vkMapMemory(vulkanDevice->logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, indices.data(), (size_t) bufferSize);
-        vkUnmapMemory(vulkanDevice->logicalDevice, stagingBufferMemory);
+        vkUnmapMemory(vulkanDevice->logicalDevice, stagingBufferMemory);*/
 
-        createBuffer(
+        // vub::Buffer indexBuffer;
+        VUB_CHECK_RESULT(vulkanDevice->createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            &indexBuffer,
+            bufferSize
+        ));
+
+        vulkanDevice->copyBuffer(&stagingBuffer, &indexBuffer, transferQueue, transferCommandPool);
+
+        /*createBuffer(
             bufferSize,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
             0,
@@ -1420,10 +1498,85 @@ private:
             familyIndicesUsingBuffers
         );
         
-        copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+        copyBuffer(stagingBuffer, indexBuffer, bufferSize); */
 
+        stagingBuffer.destroy();
+
+        /*vkDestroyBuffer(vulkanDevice->logicalDevice, stagingBuffer, nullptr);
+        vkFreeMemory(vulkanDevice->logicalDevice, stagingBufferMemory, nullptr);*/
+    }
+
+    /*
+    * Buffers in Vulkan - regions of memory used for storing arbitrary data that can be read by the graphics card.
+    *  - Can be used to store vertex data, and many other things
+    *  - Need to allocate the space for buffers
+    */
+    void createVertexBuffer() {
+        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+
+        /*uint32_t graphicsQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+        uint32_t transferQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
+        std::vector<uint32_t> familyIndicesUsingBuffers {graphicsQueueFamilyIndex, transferQueueFamilyIndex};
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            0,
+            stagingBuffer,
+            stagingBufferMemory,
+            true,
+            familyIndicesUsingBuffers
+        );
+        void* data;
+        vkMapMemory(vulkanDevice->logicalDevice, stagingBufferMemory, 0,  bufferSize, 0, &data);
+        memcpy(data, vertices.data(), (size_t) bufferSize);
+        vkUnmapMemory(vulkanDevice->logicalDevice, stagingBufferMemory);
+
+         */
+
+        vub::Buffer stagingBuffer;
+        vulkanDevice->createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                &stagingBuffer,
+                bufferSize,
+                vertices.data());
+
+        /*
+        createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            // DEVICE_LOCAL_BIT - specifies memory allocated with this type is the most efficient for device access
+            0,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            vertexBuffer,
+            vertexBufferAllocation,
+            true,
+            familyIndicesUsingBuffers
+        );*/
+
+        vulkanDevice->createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                &vertexBuffer,
+                bufferSize
+        );
+
+        /*
+        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+        */
+
+        vulkanDevice->copyBuffer(&stagingBuffer, &vertexBuffer, transferQueue, transferCommandPool);
+
+        /*
         vkDestroyBuffer(vulkanDevice->logicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(vulkanDevice->logicalDevice, stagingBufferMemory, nullptr);
+         */
+        stagingBuffer.destroy();
     }
 
     /*
@@ -1499,8 +1652,8 @@ private:
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageView;
-            imageInfo.sampler = textureSampler;
+            imageInfo.imageView = texture.view; // textureImageView;
+            imageInfo.sampler = texture.sampler; // textureSampler;
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
             
@@ -1569,55 +1722,7 @@ private:
 
     }
 
-    /*
-    * Buffers in Vulkan - regions of memory used for storing arbitrary data that can be read by the graphics card.
-    *  - Can be used to store vertex data, and many other things
-    *  - Need to allocate the space for buffers
-    */
-    void createVertexBuffer() {
-        VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-        uint32_t graphicsQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-        uint32_t transferQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
-        std::vector<uint32_t> familyIndicesUsingBuffers {graphicsQueueFamilyIndex, transferQueueFamilyIndex};
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        createBuffer(
-            bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            0,
-            stagingBuffer,
-            stagingBufferMemory, 
-            true,
-            familyIndicesUsingBuffers
-        );
-
-        void* data;
-        vkMapMemory(vulkanDevice->logicalDevice, stagingBufferMemory, 0,  bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t) bufferSize);
-        vkUnmapMemory(vulkanDevice->logicalDevice, stagingBufferMemory);
-
-        createBuffer(
-            bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-            // DEVICE_LOCAL_BIT - specifies memory allocated with this type is the most efficient for device access
-            0,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            vertexBuffer,
-            vertexBufferAllocation,
-            true,
-            familyIndicesUsingBuffers
-        );
-
-        copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-        vkDestroyBuffer(vulkanDevice->logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, stagingBufferMemory, nullptr);
-    }
-
+    // TODO delete
     /*
     * Copies one buffer to another.
     */
@@ -1634,6 +1739,7 @@ private:
         endSingleTimeCommands(commandBuffer, transferCommandPool, transferQueueFamilyIndex);
     }
 
+    // TODO delete
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(vulkanDevice->physicalDevice, &memProperties);
@@ -1699,10 +1805,10 @@ private:
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        VkBuffer vertexBuffers[] = {vertexBuffer};
+        VkBuffer vertexBuffers[] = {vertexBuffer.buffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
@@ -1856,84 +1962,6 @@ private:
         }
     }
 
-    /*
-    * Loads, creates a staging buffer, then creates an image
-    */
-    void createTextureImage() {
-        int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
-
-        if(!pixels) {
-            std::cout << stbi_failure_reason() << std::endl;
-            throw std::runtime_error("failed to load texture image!");
-        }
-
-        mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        uint32_t graphicsQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
-        uint32_t transferQueueFamilyIndex = vulkanDevice->getQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT);
-        std::vector<uint32_t> concurrentIndices {graphicsQueueFamilyIndex, transferQueueFamilyIndex};
-
-        // std::cout << "staging buffer: " << stagingBuffer << std::endl;
-
-        createBuffer(
-            imageSize,
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            // HOST_VISIBLE_BIT - allocated memory can be mapped for host access. 
-            // HOST_COHERENT_BIT - says flushing not necesary
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-            0,
-            stagingBuffer,
-            stagingBufferMemory,   
-            true,
-            concurrentIndices
-        );
-
-        void* data;
-        vkMapMemory(vulkanDevice->logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, pixels, static_cast<size_t>(imageSize));
-        vkUnmapMemory(vulkanDevice->logicalDevice, stagingBufferMemory);
-
-        stbi_image_free(pixels);
-
-        createImage(
-            texWidth,
-            texHeight,
-            mipLevels,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_FORMAT_R8G8B8A8_SRGB,
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            textureImage,
-            textureImageAllocation 
-        );
-
-        transitionImageLayout(
-            textureImage, 
-            VK_FORMAT_R8G8B8A8_SRGB,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            mipLevels
-        );
-
-        copyBufferToImage(
-            stagingBuffer, 
-            textureImage, 
-            static_cast<uint32_t>(texWidth), 
-            static_cast<uint32_t>(texHeight)
-        );
-
-        // GENERATING MIPMAPS TRANSITIONS TO VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ITSELF
-        generateMipmaps(textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, mipLevels);
-
-        vkDestroyBuffer(vulkanDevice->logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(vulkanDevice->logicalDevice, stagingBufferMemory, nullptr);
-    }
 
     /*
     * Generates mip maps.
@@ -2044,6 +2072,33 @@ private:
     }
 
     /*
+    * Creates a VulkanTexture. Which is an abstraction containing all the data relevant to a texture
+    */
+   void createVulkanTexture() {
+        int texWidth, texHeight, texChannels;
+        stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+        if(!pixels) {
+            std::cout << stbi_failure_reason() << std::endl;
+            throw std::runtime_error("failed to load texture image!");
+        }
+
+        mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
+        texture.fromBuffer(
+            pixels,
+            imageSize,
+            VK_FORMAT_R8G8B8A8_SRGB,
+            texWidth, texHeight,
+            vulkanDevice,
+            graphicsQueue
+        );
+
+        stbi_image_free(pixels);
+   }
+
+    /*
     * Helper functions that creates an image, and the associated memory
     */ 
     void createImage(
@@ -2111,14 +2166,15 @@ private:
     /*
     * Creates the view for the texture image. Texture image is unusable by shaders without this view
     */
-    void createTextureImageView() {
+    /*void createTextureImageView() {
         textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-    }
+    }*/
 
     /*
     * Creation of image view functionality made reusable
     */
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
+
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -2138,6 +2194,7 @@ private:
         return imageView;
     }
 
+    // TODO delete
     /*
     * Creates a sampler that reads colors from the texture in the shader
     */
@@ -2164,7 +2221,7 @@ private:
         samplerInfo.maxLod = static_cast<float>(mipLevels);
         samplerInfo.mipLodBias = 0.0f;
 
-        if(vkCreateSampler(vulkanDevice->logicalDevice, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
+        if(vkCreateSampler(vulkanDevice->logicalDevice, &samplerInfo, nullptr, &texture.sampler /*textureSampler*/) != VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
         }
     }
@@ -2285,6 +2342,7 @@ private:
         endSingleTimeCommands(commandBuffer, graphicsCommandPool, graphicsQueueFamilyIndex);
     }
 
+    // TODO delete
     /*
     * Moving data in a buffer to data in an image
     */
@@ -2330,6 +2388,8 @@ private:
     */
     static std::vector<char> readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary); // ate -> start at end of file. binary ->  is a binary format file
+
+
 
         if(!file.is_open()){
             throw std::runtime_error("failed to open file!");
