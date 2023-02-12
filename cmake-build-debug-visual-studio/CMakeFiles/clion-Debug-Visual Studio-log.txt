@@ -1,0 +1,10 @@
+F:\DevTools\CLion2022.3.1\bin\cmake\win\bin\cmake.exe -G "Visual Studio 17 2022" -S F:\Rendering\vulkan_learning -B F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio
+-- Selecting Windows SDK version 10.0.19041.0 to target Windows 10.0.19045.
+-- Including Win32 support
+-- GLM: Version 0.9.9.9
+-- SPIRV-Cross: Finding Git version for SPIRV-Cross.
+-- SPIRV-Cross: Git hash: 4e2fdb25
+SPIRV-Cross:  Testing will be disabled for SPIRV-Cross. Could not find glslang or SPIRV-Tools build under external/. To enable testing, run ./checkout_glslang_spirv_tools.sh and ./build_glslang_spirv_tools.sh first.
+-- Configuring done
+-- Generating done
+-- Build files have been written to: F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio

@@ -6,9 +6,18 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+
 #include <iostream>
 #include <vector>
 #include <set>
+#include <cstdint>
+#include <vector>
+#include <cstring>
+
 
 #include "VulkanInitializers.hpp"
 
@@ -73,6 +82,17 @@ void setImageLayout(
 	VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 	VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
 );
+
+bool checkValidationLayerSupport(std::vector<const char*> validationLayers);
+std::vector<const char*> getAllRequiredExtensions(bool addGLFWExtensions, bool enabledValidationLayers);
+bool checkGLFWRequiredExtensionsSupport(std::vector<VkExtensionProperties> supportedExtensions);
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData);
+
 
 }
 }

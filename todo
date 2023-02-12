@@ -1,8 +1,17 @@
 TODO:
 
-1. Prepare initial post
-  a. Create a CAMERA class - like (https://github.com/SaschaWillems/Vulkan/blob/master/base/camera.hpp) in a 'base' capacity
-  b. Make code presentable
+1 - Get project running using defaultCore - Done
+1.5 - GET RID OF VCPKGGGGG - Done
+2 - Integrate imgui - Done
+3 - model class - Done
+4 - Go back to non-texture shading to show obvious changes.
+        Create a material class???? https://vkguide.dev/docs/gpudriven/material_system/
+
+
+
+
+
+
 
 Light Source
 Model
@@ -17,9 +26,3 @@ Post-Processing
 Performance Metrics
 
 .gltf
-
-
-
-Breaking Out the concept of the "Device"!
- - If there is an issue with a group, like the transfer family, mark it on the device
-    - increases coverage

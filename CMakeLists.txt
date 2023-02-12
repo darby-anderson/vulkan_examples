@@ -1,10 +1,3 @@
-# set(VCPKG_TARGET_TRIPLET "x86-windows")
-# set(VCPKG_FEATURE_FLAGS "versions")
-
-# set(CMAKE_TOOLCHAIN_FILE "F:/DevTools/vcpkg/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-
-message(STATUS "STARTING")
-
 cmake_minimum_required(VERSION 3.20)
 project(VulkanExamples)
 
@@ -13,41 +6,53 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# dependencies
-find_package(tinyobjloader CONFIG REQUIRED)
-find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
-find_package(Vulkan REQUIRED)
-find_package(glfw3 CONFIG REQUIRED)
-find_package(glm CONFIG REQUIRED)
-# find_package(imgui REQUIRED)
-
-find_path(STB_INCLUDE_DIRS "stb.h")
-
 add_executable(${PROJECT_NAME} main.cpp)
 
-# target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+# dependencies
 
-# target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/libs/VulkanMemoryAllocatord.lib)
-# target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/external_includes)
+# GLFW - https://www.glfw.org/docs/latest/build_guide.html#build_link_cmake_source
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
+add_subdirectory(deps/glfw)
+target_link_libraries(${PROJECT_NAME} glfw)
 
+# GLM - https://github.com/g-truc/glm/blob/master/manual.md#-15-finding-glm-with-cmake
+add_subdirectory(deps/glm)
+target_link_libraries(${PROJECT_NAME} glm::glm)
+
+# IMGUI - https://github.com/ocornut/imgui/blob/master/examples/example_glfw_vulkan/CMakeLists.txt
+set(IMGUI_DIR deps/imgui)
+include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
+target_sources(${PROJECT_NAME} PRIVATE
+		${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+		${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+		${IMGUI_DIR}/imgui.cpp
+		${IMGUI_DIR}/imgui_draw.cpp
+		${IMGUI_DIR}/imgui_demo.cpp
+		${IMGUI_DIR}/imgui_demo.cpp
+		${IMGUI_DIR}/imgui_tables.cpp
+		${IMGUI_DIR}/imgui_widgets.cpp
+		)
+
+# TINYOBJLOADER
+add_subdirectory(deps/tinyobjloader)
+target_link_libraries(${PROJECT_NAME} tinyobjloader)
+
+# SPIRV-Cross
+add_subdirectory(deps/SPIRV-Cross)
+# target_link_libraries(${PROJECT_NAME} SPIRV-Cross)
+target_link_libraries(${PROJECT_NAME} spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect)
+
+# STB
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/deps/stb)
+
+# Vulkan
+find_package(Vulkan REQUIRED)
+target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
+
+# BASE
 add_subdirectory(base)
-
-target_link_libraries( ${PROJECT_NAME} 
-	PUBLIC	
-	Vulkan::Vulkan
-	glfw
-	glm::glm
-	tinyobjloader::tinyobjloader
-	unofficial::vulkan-memory-allocator::vulkan-memory-allocator
-	base
-)
-
-target_include_directories(
-	${PROJECT_NAME} 
-	PUBLIC	
-	{STB_INCLUDE_DIRS}
-	"${PROJECT_BINARY_DIR}"
-	"${PROJECT_SOURCE_DIR}/base"
-)
+target_link_libraries(${PROJECT_NAME} base)
+target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/base")

@@ -282,5 +282,120 @@ namespace tools {
     }
 
 
-}
-}
+    /**
+     *  Checks that the listed validation layers are supported
+     * @param validationLayers
+     * @return true if all the layers are supported
+     */
+    bool checkValidationLayerSupport(std::vector<const char*> validationLayers) {
+
+        uint32_t layerCount;
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        for(const char* layerName : validationLayers) {
+            bool layerFound = false;
+
+            for(const auto& layerProperties : availableLayers) {
+                if(strcmp(layerName, layerProperties.layerName) == 0) {
+                    layerFound = true;
+                    break;
+                }
+            }
+
+            if(!layerFound) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets all extensions required by vulkan, including GLFW extensions
+     *
+     * @param enabledValidationLayers toggles if VK_EXT_DEBUG_UTILS should be added to the required extensions
+     * @return a list of the required extensions
+     */
+    std::vector<const char*> getAllRequiredExtensions(bool addGLFWExtensions, bool enabledValidationLayers) {
+
+        std::vector<const char*> extensions;
+
+        if(addGLFWExtensions) {
+            uint32_t glfwExtensionCount = 0;
+            const char** glfwExtensions;
+            glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+            for(int i = 0; i < glfwExtensionCount; i++) {
+                extensions.push_back(glfwExtensions[i]);
+            }
+        }
+
+        if(enabledValidationLayers) {
+            extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        }
+
+        return extensions;
+    }
+
+    /**
+     * Checks if all extensions needed by GLFW are supported
+     *
+     * @param supportedExtensions the extensions supported by the device
+     * @return true if all necessary extensions are supported
+     */
+    bool checkGLFWRequiredExtensionsSupport(std::vector<VkExtensionProperties> supportedExtensions) {
+        uint32_t glfwRequiredExtensionCount;
+        const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwRequiredExtensionCount);
+
+        for(int i = 0; i < glfwRequiredExtensionCount; i++) {
+            const char* glfwRequiredExtension = glfwExtensions[i];
+
+            bool foundMatch = false;
+            for(const auto& extension: supportedExtensions) {
+                if(std::strcmp(glfwRequiredExtension, extension.extensionName) == 0) {
+                    foundMatch = true;
+                    break;
+                }
+            }
+
+            if(!foundMatch) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * A callback passed to the Vulkan debug layer to replace the default standard print procedure.
+     *
+     * @param messageSeverity
+     * @param messageType
+     * @param pCallbackData
+     * @param pUserData
+     * @return
+     */
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+            void* pUserData) {
+
+        if(messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+            std::cerr << "----------------" << std::endl;
+            std::cerr << "Validation Layer: " << messageType << std::endl;
+            std::cerr << "Error Message: " << pCallbackData->pMessage << std::endl;
+            std::cerr << "----------------" << std::endl;
+        }
+
+        return VK_FALSE;
+    }
+
+
+
+
+} // tools
+} // vub

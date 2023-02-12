@@ -8,6 +8,9 @@
 #include <vector>
 
 #include <vulkan/vulkan.h>
+// #include <stb_image.h>
+#include <stb_image.h>
+
 
 #include "VulkanBuffer.hpp"
 #include "VulkanDevice.hpp"
@@ -33,20 +36,22 @@ class Texture
 		void 	updateDescriptor();
 		void 	destroy();
 		// KTX SUPPORT??
+        // KTX is a texture format for
+
 };
 
 class Texture2D : public Texture 
 {
 	public:
-		/*void loadFromFile(
+		void loadFromFile(
 			std::string			filename,
 			VkFormat			format,
 			vub::VulkanDevice *	device,
 			VkQueue				copyQueue,
-			VkImageUsageFlags	imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
-			VkImageLayout		imageLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			bool				forceLinear		= false
-		);*/
+            uint32_t            mipLevels,
+            VkImageUsageFlags	imageUsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+			VkImageLayout		imageLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		);
 
 		void fromBuffer(
 			void *				buffer,

@@ -1,0 +1,368 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A3D4835D-4352-3211-9476-2D685663EDE6}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>VulkanExamples</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VulkanExamples.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VulkanExamples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VulkanExamples.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VulkanExamples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">VulkanExamples.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">VulkanExamples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">VulkanExamples.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">VulkanExamples</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>deps\glfw\src\Debug\glfw3.lib;deps\tinyobjloader\Debug\tinyobjloader.lib;deps\SPIRV-Cross\Debug\spirv-cross-glsld.lib;deps\SPIRV-Cross\Debug\spirv-cross-cppd.lib;deps\SPIRV-Cross\Debug\spirv-cross-reflectd.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\Debug\base.lib;deps\glfw\src\Debug\glfw3.lib;deps\tinyobjloader\Debug\tinyobjloader.lib;deps\SPIRV-Cross\Debug\spirv-cross-cppd.lib;deps\SPIRV-Cross\Debug\spirv-cross-glsld.lib;deps\SPIRV-Cross\Debug\spirv-cross-cored.lib;deps\SPIRV-Cross\Debug\spirv-cross-reflectd.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/Debug/VulkanExamples.lib</ImportLibrary>
+      <ProgramDataBaseFile>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/Debug/VulkanExamples.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>deps\glfw\src\Release\glfw3.lib;deps\tinyobjloader\Release\tinyobjloader.lib;deps\SPIRV-Cross\Release\spirv-cross-glsl.lib;deps\SPIRV-Cross\Release\spirv-cross-cpp.lib;deps\SPIRV-Cross\Release\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\Release\base.lib;deps\glfw\src\Release\glfw3.lib;deps\tinyobjloader\Release\tinyobjloader.lib;deps\SPIRV-Cross\Release\spirv-cross-cpp.lib;deps\SPIRV-Cross\Release\spirv-cross-glsl.lib;deps\SPIRV-Cross\Release\spirv-cross-core.lib;deps\SPIRV-Cross\Release\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/Release/VulkanExamples.lib</ImportLibrary>
+      <ProgramDataBaseFile>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/Release/VulkanExamples.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>deps\glfw\src\MinSizeRel\glfw3.lib;deps\tinyobjloader\MinSizeRel\tinyobjloader.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-glsl.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-cpp.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\MinSizeRel\base.lib;deps\glfw\src\MinSizeRel\glfw3.lib;deps\tinyobjloader\MinSizeRel\tinyobjloader.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-cpp.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-glsl.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-core.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/MinSizeRel/VulkanExamples.lib</ImportLibrary>
+      <ProgramDataBaseFile>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/MinSizeRel/VulkanExamples.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>deps\glfw\src\RelWithDebInfo\glfw3.lib;deps\tinyobjloader\RelWithDebInfo\tinyobjloader.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-glsl.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-cpp.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\RelWithDebInfo\base.lib;deps\glfw\src\RelWithDebInfo\glfw3.lib;deps\tinyobjloader\RelWithDebInfo\tinyobjloader.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-cpp.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-glsl.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-core.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/RelWithDebInfo/VulkanExamples.lib</ImportLibrary>
+      <ProgramDataBaseFile>F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/RelWithDebInfo/VulkanExamples.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="F:\Rendering\vulkan_learning\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule F:/Rendering/vulkan_learning/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+F:\DevTools\CLion2022.3.1\bin\cmake\win\bin\cmake.exe -SF:/Rendering/vulkan_learning -BF:/Rendering/vulkan_learning/cmake-build-debug-visual-studio --check-stamp-file F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCXXInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCommonLanguageInclude.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeGenericSystem.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeInitializeConfigs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeLanguageInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeRCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInitialize.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageHandleStandardArgs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageMessage.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindVulkan.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\WindowsPaths.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCXXCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeRCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule F:/Rendering/vulkan_learning/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+F:\DevTools\CLion2022.3.1\bin\cmake\win\bin\cmake.exe -SF:/Rendering/vulkan_learning -BF:/Rendering/vulkan_learning/cmake-build-debug-visual-studio --check-stamp-file F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCXXInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCommonLanguageInclude.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeGenericSystem.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeInitializeConfigs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeLanguageInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeRCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInitialize.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageHandleStandardArgs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageMessage.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindVulkan.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\WindowsPaths.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCXXCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeRCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule F:/Rendering/vulkan_learning/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+F:\DevTools\CLion2022.3.1\bin\cmake\win\bin\cmake.exe -SF:/Rendering/vulkan_learning -BF:/Rendering/vulkan_learning/cmake-build-debug-visual-studio --check-stamp-file F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCXXInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCommonLanguageInclude.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeGenericSystem.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeInitializeConfigs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeLanguageInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeRCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInitialize.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageHandleStandardArgs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageMessage.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindVulkan.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\WindowsPaths.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCXXCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeRCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule F:/Rendering/vulkan_learning/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+F:\DevTools\CLion2022.3.1\bin\cmake\win\bin\cmake.exe -SF:/Rendering/vulkan_learning -BF:/Rendering/vulkan_learning/cmake-build-debug-visual-studio --check-stamp-file F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCXXInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeCommonLanguageInclude.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeGenericSystem.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeInitializeConfigs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeLanguageInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeRCInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInformation.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\CMakeSystemSpecificInitialize.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\CMakeCommonCompilerMacros.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Compiler\MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageHandleStandardArgs.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindPackageMessage.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\FindVulkan.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-C.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC-CXX.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows-MSVC.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\Windows.cmake;F:\DevTools\CLion2022.3.1\bin\cmake\win\share\cmake-3.24\Modules\Platform\WindowsPaths.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeCXXCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeRCCompiler.cmake;F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\3.24.2\CMakeSystem.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="F:\Rendering\vulkan_learning\main.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\backends\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\imgui.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\imgui_draw.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\imgui_demo.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\imgui_tables.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\imgui_widgets.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\ZERO_CHECK.vcxproj">
+      <Project>{9BFF50BD-F7CF-3266-A02D-B1D50AAB859B}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\base\base.vcxproj">
+      <Project>{8FADB14E-FED0-3F27-9176-06D4971B17CB}</Project>
+      <Name>base</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\glfw\src\glfw.vcxproj">
+      <Project>{F40851D3-D492-3AA0-ACC9-E939E9BE8A7E}</Project>
+      <Name>glfw</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\SPIRV-Cross\spirv-cross-core.vcxproj">
+      <Project>{0796B016-9F08-309D-B281-F2F2DF96A70C}</Project>
+      <Name>spirv-cross-core</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\SPIRV-Cross\spirv-cross-cpp.vcxproj">
+      <Project>{9AAF8AED-46DC-380B-8C42-C15C02457F18}</Project>
+      <Name>spirv-cross-cpp</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\SPIRV-Cross\spirv-cross-glsl.vcxproj">
+      <Project>{685A7E4F-9269-39A5-88D4-5F408A73A3D8}</Project>
+      <Name>spirv-cross-glsl</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\SPIRV-Cross\spirv-cross-reflect.vcxproj">
+      <Project>{CCF1FB3E-9E08-3E45-9D4E-0338F5BFE160}</Project>
+      <Name>spirv-cross-reflect</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\tinyobjloader\tinyobjloader.vcxproj">
+      <Project>{4ECF1BDA-8AEC-3EE1-9291-CD7F3B373949}</Project>
+      <Name>tinyobjloader</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -163,7 +163,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
      * @param enabledExtensions A list of extensions attempted to be enabled on the device level
      * @param enabledLayers A list of the validation layers to be activated
      * @param pNextChain (Optional) chain of pointers to extension structures
-     * @param useSwapChain (Optional) Set to flase for ehealess rendering to omit the swapchain device extensions
+     * @param useSwapChain (Optional) Set to flase for ehealess rendering to omit the defaultSwapchain device extensions
      * @param requestedQueueTypes (Optional) Bit flags specifiying the queue types to be requested from the device 
      * @return VkResult 
      */
@@ -175,7 +175,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos {};
 
-        // Get queue family indeices for the requested queue family types
+        // Get queue family indices for the requested queue family types
         // Note that the indices may overlap depending on the implementation
 
         const float defaultQueuePriority(0.0f);
@@ -231,7 +231,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
         std::vector<const char*> deviceExtensions(enabledExtensions);
         if(useSwapChain)
         {
-            // If the device will be used for presenting to a display via a swapchain we need to request the swapchain extension
+            // If the device will be used for presenting to a display via a defaultSwapchain we need to request the defaultSwapchain extension
             deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         }
 

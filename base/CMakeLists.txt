@@ -13,10 +13,27 @@ add_library(
 	"VulkanTexture.cpp"
 	"VulkanTools.hpp"
 	"VulkanTools.cpp"
-)
+	"VulkanSwapchain.hpp"
+	"VulkanSwapChain.cpp"
+	"VulkanFrameBuffer.hpp"
+	"defaultCore.hpp"
+	"defaultCore.cpp"
+	"model.hpp"
+	"model.cpp"
+	"vertex.hpp"
+	"material.hpp"
+	"material.cpp"
+	"file_system.hpp")
+
 
 target_link_libraries(
 	base
-	PRIVATE 
+	PRIVATE
 	Vulkan::Vulkan
+	glfw
+	glm::glm
+	tinyobjloader
+	spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect
 )
+
+target_include_directories(base PUBLIC ${PROJECT_SOURCE_DIR}/deps/stb)

@@ -1,0 +1,16 @@
+# CMake generation dependency list for this directory.
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/BasicConfigVersion-SameMajorVersion.cmake.in
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/CMakeDependentOption.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/CMakePackageConfigHelpers.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/CheckCSourceCompiles.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/CheckIncludeFile.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/CheckLibraryExists.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/FindPackageHandleStandardArgs.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/FindPackageMessage.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/FindThreads.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/GNUInstallDirs.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/Internal/CheckSourceCompiles.cmake
+F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/WriteBasicConfigVersionFile.cmake
+F:/Rendering/vulkan_learning/deps/glfw/CMake/cmake_uninstall.cmake.in
+F:/Rendering/vulkan_learning/deps/glfw/CMake/glfw3Config.cmake.in
+F:/Rendering/vulkan_learning/deps/glfw/CMakeLists.txt
