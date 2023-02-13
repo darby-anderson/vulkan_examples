@@ -17,11 +17,16 @@ public:
     void test_load_spv(){
 
         // load spirv from file
-        std::vector<uint32_t> vertSpirv = loadFileBytes("../shaders/vert.spv");
-        std::vector<uint32_t> fragSpirv = loadFileBytes("../shaders/frag.spv");
+        std::vector<uint32_t> vertSpirv = loadFileIntoUint32_t("../shaders/vert.spv");
+        std::vector<uint32_t> fragSpirv = loadFileIntoUint32_t("../shaders/frag.spv");
 
         spirv_cross::Compiler comp {std::move(vertSpirv)};
-        spirv_cross::ShaderResources resources = comp.get_shader_resources();
+
+        std::cout << "compiled comp: " << comp.compile() << std::endl;
+        auto active = comp.get_active_interface_variables();
+        spirv_cross::ShaderResources resources = comp.get_shader_resources(active);
+
+
 
         std::cout << "resource get! --- " << resources.uniform_buffers[0].name << std::endl;
 
