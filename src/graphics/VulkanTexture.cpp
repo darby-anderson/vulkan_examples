@@ -1,6 +1,6 @@
 #include "VulkanTexture.hpp"
 
-namespace vub {
+namespace puffin {
 
 
 void Texture::updateDescriptor()
@@ -34,7 +34,7 @@ void Texture::destroy()
  * @param imageLayout
  * @param forceLinear
  */
-void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanDevice *device, VkQueue copyQueue,
+void Texture2D::loadFromFile(std::string filename, VkFormat format, puffin::VulkanDevice *device, VkQueue copyQueue,
                              uint32_t mipLevels, VkImageUsageFlags imageUsageFlags, VkImageLayout imageLayout)
 {
 
@@ -55,7 +55,7 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanD
     VkFormatProperties formatProperties;
     vkGetPhysicalDeviceFormatProperties(device->physicalDevice, format, &formatProperties);
 
-    VkMemoryAllocateInfo memAllocInfo = vub::initializers::memoryAllocateInfo();
+    VkMemoryAllocateInfo memAllocInfo = puffin::initializers::memoryAllocateInfo();
     VkMemoryRequirements memReqs;
 
     // Use separate command buffer for texture loading
@@ -65,7 +65,7 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanD
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
 
-    VkBufferCreateInfo bufferCreateInfo = vub::initializers::bufferCreateInfo();
+    VkBufferCreateInfo bufferCreateInfo = puffin::initializers::bufferCreateInfo();
     bufferCreateInfo.size = imageSize;
     bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -91,7 +91,7 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanD
     stbi_image_free(pixels);
 
     // Create optimal tiled target image
-    VkImageCreateInfo imageCreateInfo = vub::initializers::imageCreateInfo();
+    VkImageCreateInfo imageCreateInfo = puffin::initializers::imageCreateInfo();
     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     imageCreateInfo.format = format;
     imageCreateInfo.mipLevels = mipLevels;
@@ -129,7 +129,7 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanD
 
     // Image barrier for optimal image (target)
     // Optimal image will be used as destination for the copy
-    vub::tools::setImageLayout(
+    puffin::tools::setImageLayout(
             copyCmd,
             image,
             VK_IMAGE_LAYOUT_UNDEFINED,
@@ -157,7 +157,7 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanD
 
     //  Change texture image layout to shader read after mip levels have been copied
     this->imageLayout = imageLayout;
-    vub::tools::setImageLayout(
+    puffin::tools::setImageLayout(
             copyCmd,
             image,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -180,7 +180,7 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanD
 
     // Image barrier for optimal image (target)
     // Optimal image will be used as destination for the copy
-    vub::tools::setImageLayout(
+    puffin::tools::setImageLayout(
             mipMapCommandBuffer,
             image,
             VK_IMAGE_LAYOUT_UNDEFINED,
@@ -326,16 +326,16 @@ void Texture2D::loadFromFile(std::string filename, VkFormat format, vub::VulkanD
  * @param (Optional) imageLayout Usage layout for the texture (defaults VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
  */
 void Texture2D::fromBuffer(
-	void* buffer, 
-	VkDeviceSize bufferSize, 
-	VkFormat format, 
-	uint32_t texWidth, 
-	uint32_t texHeight, 
-	vub::VulkanDevice* device, 
-	VkQueue copyQueue,
-	VkFilter filter,
-	VkImageUsageFlags imageUsageFlags,
-	VkImageLayout imageLayout	
+            void* buffer,
+            VkDeviceSize bufferSize,
+            VkFormat format,
+            uint32_t texWidth,
+            uint32_t texHeight,
+            puffin::VulkanDevice* device,
+            VkQueue copyQueue,
+            VkFilter filter,
+            VkImageUsageFlags imageUsageFlags,
+            VkImageLayout imageLayout
 )
 {
 	assert(buffer);
@@ -345,7 +345,7 @@ void Texture2D::fromBuffer(
 	height = texHeight;
 	mipLevels = 1;
 
-	VkMemoryAllocateInfo memAllocInfo = vub::initializers::memoryAllocateInfo();
+	VkMemoryAllocateInfo memAllocInfo = puffin::initializers::memoryAllocateInfo();
 	VkMemoryRequirements memReqs;
 
 	// Use a separate command buffer for texture loading
@@ -355,7 +355,7 @@ void Texture2D::fromBuffer(
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
 
-	VkBufferCreateInfo bufferCreateInfo = vub::initializers::bufferCreateInfo();
+	VkBufferCreateInfo bufferCreateInfo = puffin::initializers::bufferCreateInfo();
 	bufferCreateInfo.size = bufferSize;
 
 	// This buffer is used as a transfer source for the buffer copy
@@ -392,7 +392,7 @@ void Texture2D::fromBuffer(
 	bufferCopyRegion.bufferOffset = 0;
 
 	/// Create optimal tiled target image
-	VkImageCreateInfo imageCreateInfo = vub::initializers::imageCreateInfo();
+	VkImageCreateInfo imageCreateInfo = puffin::initializers::imageCreateInfo();
 	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageCreateInfo.format = format;
 	imageCreateInfo.mipLevels = mipLevels;
@@ -428,7 +428,7 @@ void Texture2D::fromBuffer(
 
 	// Image barrier for optimal image
 	// Optimal image will be used as destination for the copy
-	vub::tools::setImageLayout(
+	puffin::tools::setImageLayout(
 		copyCmd,
 		image,
 		VK_IMAGE_LAYOUT_UNDEFINED,
@@ -448,7 +448,7 @@ void Texture2D::fromBuffer(
 
 	// Change texture image layout to  for the shader-read after all mip levels have been copied
 	this->imageLayout = imageLayout;
-	vub::tools::setImageLayout(
+	puffin::tools::setImageLayout(
 		copyCmd,
 		image,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,

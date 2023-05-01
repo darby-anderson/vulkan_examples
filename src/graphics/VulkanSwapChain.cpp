@@ -4,7 +4,7 @@
 
 #include "VulkanSwapchain.hpp"
 
-namespace vub {
+namespace puffin {
 
 /**
  * Set instance, physical and logical device to use for the defaultSwapchain and get all required function pointers.

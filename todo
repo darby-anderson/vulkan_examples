@@ -7,6 +7,14 @@ TODO:
 4 - Go back to non-texture shading to show obvious changes.
         Create a material class???? https://vkguide.dev/docs/gpudriven/material_system/
 
+Mastering Vulkan Transition
+ 1. [DONE] Fix CMAKE files
+ 2. Expand gpu_device's reach/capabilities to more nearly match raptor's
+ 3. Move Imgui's logic into its own struct
+ 4. Write command_buffer
+ 5.
+
+
 
 
 

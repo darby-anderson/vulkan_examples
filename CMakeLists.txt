@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/application/camera.cpp)
 
 # dependencies
 
@@ -53,6 +53,16 @@ find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
 
 # BASE
-add_subdirectory(base)
-target_link_libraries(${PROJECT_NAME} base)
-target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/base")
+add_subdirectory(src/base)
+target_link_libraries(${PROJECT_NAME} src/base)
+target_include_directories(${PROJECT_NAME} PUBLIC "src/base")
+
+# GRAPHICS
+add_subdirectory(src/graphics)
+target_link_libraries(${PROJECT_NAME} src/graphics)
+target_include_directories(${PROJECT_NAME} PUBLIC "src/graphics")
+
+# APPLICATION
+add_subdirectory(src/application)
+target_link_libraries(${PROJECT_NAME} src/application)
+target_include_directories(${PROJECT_NAME} PUBLIC "src/application")

@@ -8,11 +8,11 @@
 #include <iterator>
 #include <vector>
 #include "vulkan/vulkan.h"
-#include "VulkanDevice.hpp"
+#include "vulkan_device.hpp"
 #include "VulkanTools.hpp"
 
 
-namespace vub {
+namespace puffin {
 
 /*
  * -- Render passes
@@ -91,21 +91,21 @@ struct AttachmentCreateInfo {
 struct FrameBuffer {
 
 private:
-    vub::VulkanDevice *vulkanDevice;
+    puffin::VulkanDevice *vulkanDevice;
 
 public:
     uint32_t width, height;
     VkFramebuffer framebuffer;
     VkRenderPass renderPass;
     VkSampler sampler;
-    std::vector<vub::FramebufferAttachment> attachments;
+    std::vector<puffin::FramebufferAttachment> attachments;
 
     /**
      * Default constructor
      *
      * @param vulkanDevice Pointer to a valid VulkanDevice
      */
-    FrameBuffer(vub::VulkanDevice *vulkanDevice) {
+    FrameBuffer(puffin::VulkanDevice *vulkanDevice) {
         assert(vulkanDevice);
         this->vulkanDevice = vulkanDevice;
     }
@@ -131,9 +131,9 @@ public:
       * @param createInfo structure that specifies the framebuffer to be constructed
       * @return Index of the new attachment
       */
-     uint32_t addAttachment(vub::AttachmentCreateInfo createInfo) {
+     uint32_t addAttachment(puffin::AttachmentCreateInfo createInfo) {
 
-         vub::FramebufferAttachment attachment;
+         puffin::FramebufferAttachment attachment;
          attachment.format = createInfo.format;
 
          VkImageAspectFlags aspectMask = VK_FLAGS_NONE;
@@ -158,7 +158,7 @@ public:
 
          assert(aspectMask > 0);
 
-         VkImageCreateInfo imageCreateInfo = vub::initializers::imageCreateInfo();
+         VkImageCreateInfo imageCreateInfo = puffin::initializers::imageCreateInfo();
          imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
          imageCreateInfo.format = createInfo.format;
          imageCreateInfo.extent.width = createInfo.width;
@@ -170,7 +170,7 @@ public:
          imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
          imageCreateInfo.usage = createInfo.usage;
 
-         VkMemoryAllocateInfo memoryAllocateInfo = vub::initializers::memoryAllocateInfo();
+         VkMemoryAllocateInfo memoryAllocateInfo = puffin::initializers::memoryAllocateInfo();
          VkMemoryRequirements memoryRequirements;
 
          // Create the imageCreateInfo for this attachment
@@ -186,7 +186,7 @@ public:
          attachment.subresourceRange.levelCount = 1;
          attachment.subresourceRange.layerCount = createInfo.layerCount;
 
-         VkImageViewCreateInfo imageViewCreateInfo = vub::initializers::imageViewCreateInfo();
+         VkImageViewCreateInfo imageViewCreateInfo = puffin::initializers::imageViewCreateInfo();
          imageViewCreateInfo.viewType = (createInfo.layerCount == 1) ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
          imageViewCreateInfo.format = createInfo.format;
          imageViewCreateInfo.subresourceRange = attachment.subresourceRange;
@@ -228,7 +228,7 @@ public:
       * @return VkResult for the sampler creation
       */
      VkResult createSampler(VkFilter magnificationFilter, VkFilter minificationFilter, VkSamplerAddressMode addressMode) {
-         VkSamplerCreateInfo samplerInfo = vub::initializers::samplerCreateInfo();
+         VkSamplerCreateInfo samplerInfo = puffin::initializers::samplerCreateInfo();
          samplerInfo.magFilter = magnificationFilter;
          samplerInfo.minFilter = minificationFilter;
          samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;

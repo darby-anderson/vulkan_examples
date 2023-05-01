@@ -1,16 +1,16 @@
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
-#include <imgui.h>
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_vulkan.h"
+#include "imgui.h"
 #include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
+#include "glm/gtx/hash.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -27,21 +27,21 @@
 #include <algorithm> // necessary for std::clamp
 
 // My Code
-#include <camera.hpp>
-#include <defaultCore.hpp>
-#include "VulkanDevice.hpp"
-#include "VulkanBuffer.hpp"
-#include "VulkanTools.hpp"
-#include "VulkanTexture.hpp"
-#include "VulkanSwapchain.hpp"
-#include "VulkanFrameBuffer.hpp"
-#include "vertex.hpp"
-#include "model.hpp"
-#include "material.hpp"
+#include "application/camera.hpp"
+// #include "graveyard/defaultCore.hpp"
+#include "graphics/vulkan_device.hpp"
+#include "graphics/VulkanBuffer.hpp"
+#include "graphics/VulkanTools.hpp"
+#include "graphics/VulkanTexture.hpp"
+#include "graphics/VulkanSwapchain.hpp"
+#include "graphics/VulkanFrameBuffer.hpp"
+#include "graphics/vertex.hpp"
+#include "graphics/model.hpp"
+#include "graveyard/material.hpp"
 
 // This needs to go AFTER include VulkanTexture.hpp, since it also #includes <stb_image.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include "stb_image.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -118,7 +118,7 @@ public:
 
 private:
 
-    vub::defaultCore core;
+    puffin::defaultCore core;
     
     // Pointers to a memory allocation made for the index data
 
@@ -171,15 +171,15 @@ private:
     uint32_t currentFrame = 0; 
 
     // My Objects
-    vub::camera cam;
+    puffin::camera cam;
 
-    vub::Texture2D texture;
-    vub::Buffer vertexBuffer;
-    vub::Buffer indexBuffer;
-    std::vector<vub::Buffer> uniformBuffers;
+    puffin::Texture2D texture;
+    puffin::Buffer vertexBuffer;
+    puffin::Buffer indexBuffer;
+    std::vector<puffin::Buffer> uniformBuffers;
 
     // vub::pctc_model sphereModel;
-    vub::pc_model sphereModel;
+    puffin::pc_model sphereModel;
 
     struct {
         VkImage image;    // Array of information, used for different purposes. This one is for storing depth buffer
@@ -461,8 +461,8 @@ private:
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         
-        auto bindingDescription = vub::pctc_vertex::getBindingDescription();
-        auto attributeDescriptions = vub::pctc_vertex::getAttributeDescriptions();
+        auto bindingDescription = puffin::pctc_vertex::getBindingDescription();
+        auto attributeDescriptions = puffin::pctc_vertex::getAttributeDescriptions();
         
         vertexInputInfo.vertexBindingDescriptionCount = 1;
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -851,7 +851,7 @@ private:
     void createIndexBuffer() {
         VkDeviceSize bufferSize = sizeof(sphereModel.indices[0]) * sphereModel.indices.size();
 
-        vub::Buffer stagingBuffer;
+        puffin::Buffer stagingBuffer;
         VUB_CHECK_RESULT(core.defaultVulkanDevice->createBuffer(
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -881,7 +881,7 @@ private:
     void createVertexBuffer() {
         VkDeviceSize bufferSize = sizeof(sphereModel.vertices[0]) * sphereModel.vertices.size();
 
-        vub::Buffer stagingBuffer;
+        puffin::Buffer stagingBuffer;
         core.defaultVulkanDevice->createBuffer(
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1373,8 +1373,8 @@ private:
 int main() {
     std::cout << "HELLO WORLD" << std::endl;
 
-    material mat;
-    mat.test_load_spv();
+    /*material mat;
+    mat.test_load_spv();*/
 
     HelloTriangleApplication app;
 

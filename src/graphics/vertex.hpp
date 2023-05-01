@@ -5,15 +5,15 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include "glm/glm.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
+#include "glm/gtx/hash.hpp"
 
 #include <iostream>
 #include <array>
 
 
-namespace vub {
+namespace puffin {
 
 /*
  * Position, Color vertex
@@ -123,8 +123,8 @@ struct pctc_vertex {
 * Creates a hash function for pc_vertex, for use with unordered map
 */
 namespace std {
-    template<> struct hash<vub::pc_vertex> {
-        size_t operator()(vub::pc_vertex const& vertex) const {
+    template<> struct hash<puffin::pc_vertex> {
+        size_t operator()(puffin::pc_vertex const& vertex) const {
             return ((hash<glm::vec3>()(vertex.pos) ^
                      (hash<glm::vec3>()(vertex.color) << 1)) >> 1);
         }
@@ -136,8 +136,8 @@ namespace std {
 * Creates a hash function for pctc_vertex, for use with unordered map
 */
 namespace std {
-    template<> struct hash<vub::pctc_vertex> {
-        size_t operator()(vub::pctc_vertex const& vertex) const {
+    template<> struct hash<puffin::pctc_vertex> {
+        size_t operator()(puffin::pctc_vertex const& vertex) const {
             return ((hash<glm::vec3>()(vertex.pos) ^
                      (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
                    (hash<glm::vec2>()(vertex.texCoord) << 1);

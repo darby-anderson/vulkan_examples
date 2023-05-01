@@ -25,6 +25,9 @@
     <ClCompile Include="F:\Rendering\vulkan_learning\base\material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="F:\Rendering\vulkan_learning\base\CommandBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="F:\Rendering\vulkan_learning\base\camera.hpp">
@@ -64,6 +67,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="F:\Rendering\vulkan_learning\base\file_system.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="F:\Rendering\vulkan_learning\base\CommandBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

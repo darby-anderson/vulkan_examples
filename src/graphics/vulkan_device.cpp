@@ -5,12 +5,12 @@
 * Code partially based on Sascha Willems' project: https://github.com/SaschaWillems/Vulkan
 */
 
-#include "VulkanDevice.hpp"
+#include "vulkan_device.hpp"
 #include "VulkanInitializers.hpp"
 #include <unordered_set>
 #include <stdexcept>
 
-namespace vub
+namespace puffin
 {
 
 /**
@@ -241,14 +241,35 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
         deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
 
+        // MASTERING VULKAN PROGRAMMING CH. 2 - Bindless
+        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = {};
+        indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+
+        VkPhysicalDeviceFeatures2 testBindlessPhysicalDeviceFeatures2{};
+        testBindlessPhysicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        testBindlessPhysicalDeviceFeatures2.pNext = &indexingFeatures;
+
+        vkGetPhysicalDeviceFeatures2(physicalDevice, &testBindlessPhysicalDeviceFeatures2);
+
+        bindlessSupported = indexingFeatures.descriptorBindingPartiallyBound &&
+                            indexingFeatures.runtimeDescriptorArray;
+
+        std::cout << "bindless support: " << bindlessSupported << std::endl;
+
         // If a pNext(Chain) has been passed, we need to add it to the device creation info
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
-        if(pNextChain) {
-            physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-            physicalDeviceFeatures2.features = enabledFeatures;
+        physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        physicalDeviceFeatures2.features = enabledFeatures;
+        vkGetPhysicalDeviceFeatures2(physicalDevice, &physicalDeviceFeatures2);
+
+        deviceCreateInfo.pEnabledFeatures = nullptr;
+        deviceCreateInfo.pNext = &physicalDeviceFeatures2;
+
+        if(bindlessSupported) {
+            physicalDeviceFeatures2.pNext = &indexingFeatures;
+            indexingFeatures.pNext = pNextChain;
+        } else if(pNextChain) {
             physicalDeviceFeatures2.pNext = pNextChain;
-            deviceCreateInfo.pEnabledFeatures = nullptr;
-            deviceCreateInfo.pNext = &physicalDeviceFeatures2;
         }
 
         // Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
@@ -301,13 +322,13 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
     VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer *buffer, VkDeviceMemory *memory, void *data) {
 
         // Create the buffer handle
-        VkBufferCreateInfo bufferCreateInfo = vub::initializers::bufferCreateInfo(usageFlags, size);
+        VkBufferCreateInfo bufferCreateInfo = puffin::initializers::bufferCreateInfo(usageFlags, size);
         bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         VUB_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, buffer));
 
         // Create the memory backing up the buffer media
         VkMemoryRequirements memReqs;
-        VkMemoryAllocateInfo memAlloc = vub::initializers::memoryAllocateInfo();  
+        VkMemoryAllocateInfo memAlloc = puffin::initializers::memoryAllocateInfo();
         vkGetBufferMemoryRequirements(logicalDevice, *buffer, &memReqs);
         memAlloc.allocationSize = memReqs.size;
 
@@ -330,7 +351,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
             // If host coherency hasn't been requested, do a manual flush to make writes visible
             // Needed since coherent memory is the same on all cache levels, while non-coherent may not be
             if((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0) {
-                VkMappedMemoryRange mappedRange = vub::initializers::mappedMemoryRange();
+                VkMappedMemoryRange mappedRange = puffin::initializers::mappedMemoryRange();
                 mappedRange.memory = *memory;
                 mappedRange.offset = 0;
                 mappedRange.size = size;
@@ -355,17 +376,17 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
      * @param data (Optional) Pointer to the data that should be copied to the buffer after creation (no data copied if not set)
      * @return VkResult Returns success if buffer handle and memory have been created and (optionally passed) data has been copied
      */
-    VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vub::Buffer *buffer, VkDeviceSize size, void *data) {
+    VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, puffin::Buffer *buffer, VkDeviceSize size, void *data) {
         
         buffer->device = logicalDevice;
     
         // Create the buffer handle
-        VkBufferCreateInfo bufferCreateInfo = vub::initializers::bufferCreateInfo(usageFlags, size);
+        VkBufferCreateInfo bufferCreateInfo = puffin::initializers::bufferCreateInfo(usageFlags, size);
         VUB_CHECK_RESULT(vkCreateBuffer(logicalDevice, &bufferCreateInfo, nullptr, &buffer->buffer));
 
         // Create the memory backing up the buffer handle
         VkMemoryRequirements memReqs;
-        VkMemoryAllocateInfo memAlloc = vub::initializers::memoryAllocateInfo();
+        VkMemoryAllocateInfo memAlloc = puffin::initializers::memoryAllocateInfo();
         vkGetBufferMemoryRequirements(logicalDevice, buffer->buffer, &memReqs);
         memAlloc.allocationSize = memReqs.size;
         // Find a memory type index that fits the properties of the buffer
@@ -411,7 +432,7 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
      * 
      * @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
      */
-    void VulkanDevice::copyBuffer(vub::Buffer *src, vub::Buffer *dst, VkQueue queue, VkCommandPool commandPool,
+    void VulkanDevice::copyBuffer(puffin::Buffer *src, puffin::Buffer *dst, VkQueue queue, VkCommandPool commandPool,
                                   VkBufferCopy *copyRegion) {
         assert(dst->size <= src->size);
         assert(src->buffer);
@@ -457,12 +478,12 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
      * @return VkCommandBuffer 
      */
     VkCommandBuffer VulkanDevice::createCommandBuffer(VkCommandBufferLevel level, VkCommandPool pool, bool begin) {
-        VkCommandBufferAllocateInfo cmdBufAllocateInfo = vub::initializers::commandBufferAllocateInfo(pool, level, 1);
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo = puffin::initializers::commandBufferAllocateInfo(pool, level, 1);
         VkCommandBuffer cmdBuffer;
         VUB_CHECK_RESULT(vkAllocateCommandBuffers(logicalDevice, &cmdBufAllocateInfo, &cmdBuffer));
         // If requested, start recording for the new command buffer
         if(begin) {
-            VkCommandBufferBeginInfo cmdBufInfo = vub::initializers::commandBufferBeginInfo();
+            VkCommandBufferBeginInfo cmdBufInfo = puffin::initializers::commandBufferBeginInfo();
             VUB_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffer, &cmdBufInfo));
         }
         return cmdBuffer;
@@ -491,11 +512,11 @@ uint32_t VulkanDevice::getPresentQueueFamilyIndex(VkSurfaceKHR surface) const {
 
         VUB_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 
-        VkSubmitInfo submitInfo = vub::initializers::submitInfo();
+        VkSubmitInfo submitInfo = puffin::initializers::submitInfo();
         submitInfo.commandBufferCount = 1;
         submitInfo.pCommandBuffers = &commandBuffer;
         // Create fence to ensure that the command buffer has finished executing
-        VkFenceCreateInfo fenceInfo = vub::initializers::fenceCreateInfo(VK_FLAGS_NONE);
+        VkFenceCreateInfo fenceInfo = puffin::initializers::fenceCreateInfo(VK_FLAGS_NONE);
         VkFence fence;
         VUB_CHECK_RESULT(vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence));
         // Submit to the queue

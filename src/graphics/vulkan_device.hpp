@@ -5,6 +5,7 @@
 
 #include "VulkanBuffer.hpp"
 #include "VulkanTools.hpp"
+#include "vulkan_resources.hpp"
 
 #include <vulkan/vulkan.h>
 #include <algorithm>
@@ -12,9 +13,34 @@
 #include <string>
 #include <iostream>
 
-namespace vub {
+namespace puffin {
+
+struct DeviceCreation {
+    GLFWwindow*         window  = nullptr;
+    uint32_t            width   = 1;
+    uint32_t            height  = 1;
+
+    DeviceCreation&     set_window(uint32_t width, uint32_t height, void* handle);
+};
 
 struct VulkanDevice {
+
+    static VulkanDevice*        instance();
+
+    // Init/Terminate methods
+    void                        init(const DeviceCreation& creation);
+    void                        shutdown();
+
+    // Creation/Destruction of resources
+    BufferHandle                create_buffer( const BufferCreation& creation);
+    TextureHandle               create_texture( const TextureCreation& creation);
+    // PipelineHandle              create_pipeline( const PipelineCreation& creation, const char* cache_path = nullptr );
+    SamplerHandle               create_sampler( const SamplerCreation& creation);
+    DescriptorSetLayoutHandle   creation_descriptor_set_layout(const DescriptorSetLayoutCreation& creation);
+    DescriptorSetHandle         create_descriptor_set( const DescriptorSetCreation& creation);
+    RenderPassHandle            create_render_pass( const RenderPassCreation& creation);
+    ShaderStateHandle           create_shader_state( const ShaderStateCreation& creation);
+
 
     /** @brief Physical Device representation */
     VkPhysicalDevice physicalDevice;
@@ -36,6 +62,8 @@ struct VulkanDevice {
     VkCommandPool graphicsQueueCommandPool = VK_NULL_HANDLE;
     /** @brief Set to true when the debug marker extension is detected */
     bool enableDebugMarkers = false;
+    /** @brief Result of device checks for bindless support */
+    bool bindlessSupported = false;
 
     struct
     {
@@ -65,9 +93,9 @@ struct VulkanDevice {
                                  VkDeviceSize size, VkBuffer *buffer, VkDeviceMemory *memory, void *data = nullptr);
 
     VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags,
-                                 vub::Buffer *buffer, VkDeviceSize size, void *data = nullptr);
+                                 puffin::Buffer *buffer, VkDeviceSize size, void *data = nullptr);
 
-    void copyBuffer(vub::Buffer *src, vub::Buffer *dst, VkQueue queue, VkCommandPool commandPool,
+    void copyBuffer(puffin::Buffer *src, puffin::Buffer *dst, VkQueue queue, VkCommandPool commandPool,
                     VkBufferCopy *copyRegion = nullptr);
 
     VkCommandPool   createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);

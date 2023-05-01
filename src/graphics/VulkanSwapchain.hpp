@@ -13,10 +13,10 @@
 #include <limits>
 
 #include "vulkan/vulkan.h"
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 #include "VulkanTools.hpp"
 
-namespace vub {
+namespace puffin {
 
 typedef struct _SwapchainBuffers {
     VkImage image;

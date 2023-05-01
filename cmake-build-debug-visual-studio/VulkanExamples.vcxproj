@@ -86,7 +86,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -104,10 +104,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -115,7 +115,7 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>deps\glfw\src\Debug\glfw3.lib;deps\tinyobjloader\Debug\tinyobjloader.lib;deps\SPIRV-Cross\Debug\spirv-cross-glsld.lib;deps\SPIRV-Cross\Debug\spirv-cross-cppd.lib;deps\SPIRV-Cross\Debug\spirv-cross-reflectd.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\Debug\base.lib;deps\glfw\src\Debug\glfw3.lib;deps\tinyobjloader\Debug\tinyobjloader.lib;deps\SPIRV-Cross\Debug\spirv-cross-cppd.lib;deps\SPIRV-Cross\Debug\spirv-cross-glsld.lib;deps\SPIRV-Cross\Debug\spirv-cross-cored.lib;deps\SPIRV-Cross\Debug\spirv-cross-reflectd.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>deps\glfw\src\Debug\glfw3.lib;deps\tinyobjloader\Debug\tinyobjloader.lib;deps\SPIRV-Cross\Debug\spirv-cross-glsld.lib;deps\SPIRV-Cross\Debug\spirv-cross-cppd.lib;deps\SPIRV-Cross\Debug\spirv-cross-reflectd.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;src/base.lib;src/graphics.lib;src/application.lib;deps\SPIRV-Cross\Debug\spirv-cross-glsld.lib;deps\SPIRV-Cross\Debug\spirv-cross-cored.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -130,7 +130,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -148,10 +148,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -159,7 +159,7 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>deps\glfw\src\Release\glfw3.lib;deps\tinyobjloader\Release\tinyobjloader.lib;deps\SPIRV-Cross\Release\spirv-cross-glsl.lib;deps\SPIRV-Cross\Release\spirv-cross-cpp.lib;deps\SPIRV-Cross\Release\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\Release\base.lib;deps\glfw\src\Release\glfw3.lib;deps\tinyobjloader\Release\tinyobjloader.lib;deps\SPIRV-Cross\Release\spirv-cross-cpp.lib;deps\SPIRV-Cross\Release\spirv-cross-glsl.lib;deps\SPIRV-Cross\Release\spirv-cross-core.lib;deps\SPIRV-Cross\Release\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>deps\glfw\src\Release\glfw3.lib;deps\tinyobjloader\Release\tinyobjloader.lib;deps\SPIRV-Cross\Release\spirv-cross-glsl.lib;deps\SPIRV-Cross\Release\spirv-cross-cpp.lib;deps\SPIRV-Cross\Release\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;src/base.lib;src/graphics.lib;src/application.lib;deps\SPIRV-Cross\Release\spirv-cross-glsl.lib;deps\SPIRV-Cross\Release\spirv-cross-core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -174,7 +174,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -192,10 +192,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -203,7 +203,7 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>deps\glfw\src\MinSizeRel\glfw3.lib;deps\tinyobjloader\MinSizeRel\tinyobjloader.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-glsl.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-cpp.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\MinSizeRel\base.lib;deps\glfw\src\MinSizeRel\glfw3.lib;deps\tinyobjloader\MinSizeRel\tinyobjloader.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-cpp.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-glsl.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-core.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>deps\glfw\src\MinSizeRel\glfw3.lib;deps\tinyobjloader\MinSizeRel\tinyobjloader.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-glsl.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-cpp.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;src/base.lib;src/graphics.lib;src/application.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-glsl.lib;deps\SPIRV-Cross\MinSizeRel\spirv-cross-core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>false</GenerateDebugInformation>
@@ -218,7 +218,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>%(AdditionalOptions) /external:I "F:/DevTools/vulkan/1.3.211.0/Include"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -235,10 +235,10 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
-      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\base;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\Rendering\vulkan_learning\deps\imgui;F:\Rendering\vulkan_learning\deps\imgui\backends;F:\Rendering\vulkan_learning\deps\stb;F:\Rendering\vulkan_learning\src\base;F:\Rendering\vulkan_learning\src\graphics;F:\Rendering\vulkan_learning\src\application;F:\Rendering\vulkan_learning\deps\glfw\include;F:\Rendering\vulkan_learning\deps\glm;F:\Rendering\vulkan_learning\deps\tinyobjloader;F:\Rendering\vulkan_learning\deps\SPIRV-Cross;F:\DevTools\vulkan\1.3.211.0\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -246,7 +246,7 @@
       <ProxyFileName>%(Filename)_p.c</ProxyFileName>
     </Midl>
     <Link>
-      <AdditionalDependencies>deps\glfw\src\RelWithDebInfo\glfw3.lib;deps\tinyobjloader\RelWithDebInfo\tinyobjloader.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-glsl.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-cpp.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;base\RelWithDebInfo\base.lib;deps\glfw\src\RelWithDebInfo\glfw3.lib;deps\tinyobjloader\RelWithDebInfo\tinyobjloader.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-cpp.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-glsl.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-core.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>deps\glfw\src\RelWithDebInfo\glfw3.lib;deps\tinyobjloader\RelWithDebInfo\tinyobjloader.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-glsl.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-cpp.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-reflect.lib;F:\DevTools\vulkan\1.3.211.0\Lib\vulkan-1.lib;src/base.lib;src/graphics.lib;src/application.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-glsl.lib;deps\SPIRV-Cross\RelWithDebInfo\spirv-cross-core.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -317,7 +317,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="F:\Rendering\vulkan_learning\main.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\src\main.cpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\src\application\camera.cpp" />
     <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\backends\imgui_impl_vulkan.cpp" />
     <ClCompile Include="F:\Rendering\vulkan_learning\deps\imgui\imgui.cpp" />
@@ -332,10 +333,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
-    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\base\base.vcxproj">
-      <Project>{8FADB14E-FED0-3F27-9176-06D4971B17CB}</Project>
-      <Name>base</Name>
     </ProjectReference>
     <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\glfw\src\glfw.vcxproj">
       <Project>{F40851D3-D492-3AA0-ACC9-E939E9BE8A7E}</Project>

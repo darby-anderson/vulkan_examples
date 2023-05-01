@@ -290,6 +290,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="F:\Rendering\vulkan_learning\base\material.hpp" />
     <ClCompile Include="F:\Rendering\vulkan_learning\base\material.cpp" />
     <ClInclude Include="F:\Rendering\vulkan_learning\base\file_system.hpp" />
+    <ClCompile Include="F:\Rendering\vulkan_learning\base\CommandBuffer.cpp" />
+    <ClInclude Include="F:\Rendering\vulkan_learning\base\CommandBuffer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\ZERO_CHECK.vcxproj">

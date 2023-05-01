@@ -12,9 +12,10 @@
 
 std::vector<uint32_t> loadFileIntoUint32_t(std::string filePath) {
 
-    std::ifstream infile {filePath, std::ios_base::binary};
+    std::ifstream infile; // {filePath, std::ios_base::binary};
     std::vector<uint32_t> buffer;
 
+    infile.open(filePath, std::ios_base::binary);
     infile.seekg(0, std::ios::end);
     size_t filesize = infile.tellg();
     infile.seekg(0, std::ios::beg);

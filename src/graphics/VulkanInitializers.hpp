@@ -11,7 +11,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace vub {
+namespace puffin {
 namespace initializers {
 
 inline VkMemoryAllocateInfo memoryAllocateInfo()

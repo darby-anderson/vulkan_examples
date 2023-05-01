@@ -54,7 +54,17 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/base/cmake_install.cmake")
+  include("F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/src/base/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/src/graphics/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/src/application/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)

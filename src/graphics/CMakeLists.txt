@@ -1,0 +1,40 @@
+# file(GLOB BASE_SRC "*.cpp" "*.hpp" "*.h" "../external/imgui/*.cpp")
+
+# add_library(base STATIC ${BASE_SRC})
+add_library(
+        graphics
+        "VulkanInitializers.hpp"
+        "VulkanBuffer.hpp"
+        "VulkanBuffer.cpp"
+        "vulkan_device.hpp"
+        "vulkan_device.cpp"
+        "VulkanTexture.hpp"
+        "VulkanTexture.cpp"
+        "VulkanTools.hpp"
+        "VulkanTools.cpp"
+        "VulkanSwapchain.hpp"
+        "VulkanSwapChain.cpp"
+        "VulkanFrameBuffer.hpp"
+        "model.hpp"
+        "model.cpp"
+        "vertex.hpp"
+        "vulkan_resources.hpp"
+        "vulkan_resources.cpp"
+        "gpu_enum.hpp"
+)
+
+
+target_link_libraries(
+        graphics
+        PRIVATE
+        base
+        Vulkan::Vulkan
+        glfw
+        glm::glm
+        tinyobjloader
+        spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect
+)
+
+target_include_directories(graphics PUBLIC ../../deps/stb)
+
+target_include_directories(graphics PUBLIC ../base)

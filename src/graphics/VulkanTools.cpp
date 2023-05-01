@@ -1,6 +1,6 @@
 #include "VulkanTools.hpp"
 
-namespace vub {
+namespace puffin {
 namespace tools {
     
     std::string errorString(VkResult errorCode) {
@@ -150,7 +150,7 @@ namespace tools {
     ) 
     {
         // Create an image barrier object
-        VkImageMemoryBarrier imageMemoryBarrier = vub::initializers::imageMemoryBarrier();
+        VkImageMemoryBarrier imageMemoryBarrier = puffin::initializers::imageMemoryBarrier();
         imageMemoryBarrier.oldLayout = oldImageLayout;
         imageMemoryBarrier.newLayout = newImageLayout;
         imageMemoryBarrier.image = image;

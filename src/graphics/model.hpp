@@ -7,16 +7,16 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include <tiny_obj_loader.h>
+#include "tiny_obj_loader.h"
 
 #include "vertex.hpp"
 
-namespace vub {
+namespace puffin {
 
 struct pc_model {
 private:
 public:
-    std::vector<vub::pc_vertex> vertices;
+    std::vector<puffin::pc_vertex> vertices;
     std::vector<uint32_t> indices;
 
     void loadObjFile(std::string filePath);
@@ -26,7 +26,7 @@ public:
 struct pctc_model {
 private:
 public:
-    std::vector<vub::pctc_vertex> vertices;
+    std::vector<puffin::pctc_vertex> vertices;
     std::vector<uint32_t> indices;
 
     void loadObjFile(std::string filePath);

@@ -5,4 +5,6 @@ F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/deps/glm/CMakeFiles
 F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/deps/glm/glm/CMakeFiles/generate.stamp
 F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/deps/tinyobjloader/CMakeFiles/generate.stamp
 F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/deps/SPIRV-Cross/CMakeFiles/generate.stamp
-F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/base/CMakeFiles/generate.stamp
+F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/src/base/CMakeFiles/generate.stamp
+F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/src/graphics/CMakeFiles/generate.stamp
+F:/Rendering/vulkan_learning/cmake-build-debug-visual-studio/src/application/CMakeFiles/generate.stamp

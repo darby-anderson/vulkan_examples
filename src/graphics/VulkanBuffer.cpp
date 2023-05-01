@@ -1,7 +1,7 @@
 #include "VulkanBuffer.hpp"
 
 
-namespace vub {
+namespace puffin {
 
     /**
      * @brief Map a memory range of this buffer.  If successful, mapped points to the specified buffer range

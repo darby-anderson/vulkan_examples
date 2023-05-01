@@ -6,17 +6,17 @@
 
 #include <stdexcept>
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_vulkan.h"
 #include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 
 
-#include "VulkanDevice.hpp"
-#include "VulkanSwapchain.hpp"
+#include "../graphics/vulkan_device.hpp"
+#include "../graphics/VulkanSwapchain.hpp"
 
-namespace vub {
+namespace puffin {
 
 const std::vector<const char*> defaultValidationLayers = {
         "VK_LAYER_KHRONOS_validation"
@@ -51,13 +51,13 @@ public:
 
     // DEVICE
     bool usingDefaultVulkanDevice;
-    vub::VulkanDevice *defaultVulkanDevice;
+    puffin::VulkanDevice *defaultVulkanDevice;
     void createVulkanDeviceWithValidationLayers(VkInstance instance, VkSurfaceKHR surface, VkQueueFlags requestedQueueTypes, std::vector<const char*> validationLayers = defaultValidationLayers);
     void cleanupVulkanDevice();
 
     // SWAPCHAIN
     bool usingDefaultSwapchain;
-    vub::VulkanSwapchain defaultSwapchain;
+    puffin::VulkanSwapchain defaultSwapchain;
     void createVulkanSwapchain(VkInstance instance, VulkanDevice *device, VkSurfaceKHR surface, uint32_t width, uint32_t height);
     void cleanupVulkanSwapchain();
 

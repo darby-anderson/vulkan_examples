@@ -6,10 +6,10 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
+#include "GLFW/glfw3.h"
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_vulkan.h"
 
 #include <iostream>
 #include <vector>
@@ -30,12 +30,12 @@
 	VkResult res = (f);																					\
 	if (res != VK_SUCCESS)																				\
 	{																									\
-		std::cout << "Fatal : VkResult is \"" << vub::tools::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
+		std::cout << "Fatal : VkResult is \"" << puffin::tools::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
 		assert(res == VK_SUCCESS);																		\
 	}																									\
 }
 
-namespace vub {
+namespace puffin {
 namespace tools {
 
 /**

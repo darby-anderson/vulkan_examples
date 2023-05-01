@@ -4,7 +4,7 @@
 
 #include "model.hpp"
 
-namespace vub {
+namespace puffin {
 
 void pc_model::loadObjFile(std::string filePath) {
     tinyobj::attrib_t attrib;
@@ -16,11 +16,11 @@ void pc_model::loadObjFile(std::string filePath) {
         throw std::runtime_error(warn + err);
     }
 
-    std::unordered_map<vub::pc_vertex, uint32_t> uniqueVertices{};
+    std::unordered_map<puffin::pc_vertex, uint32_t> uniqueVertices{};
 
     for(const auto& shape: shapes) {
         for(const auto& index: shape.mesh.indices) {
-            vub::pc_vertex vertex{};
+            puffin::pc_vertex vertex{};
 
             vertex.pos = {
                     attrib.vertices[3 * index.vertex_index + 0],
@@ -52,11 +52,11 @@ void pctc_model::loadObjFile(std::string filePath) {
         throw std::runtime_error(warn + err);
     }
 
-    std::unordered_map<vub::pctc_vertex, uint32_t> uniqueVertices{};
+    std::unordered_map<puffin::pctc_vertex, uint32_t> uniqueVertices{};
 
     for(const auto& shape: shapes) {
         for(const auto& index: shape.mesh.indices) {
-            vub::pctc_vertex vertex{};
+            puffin::pctc_vertex vertex{};
 
             vertex.pos = {
                     attrib.vertices[3 * index.vertex_index + 0],

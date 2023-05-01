@@ -177,13 +177,21 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{A3D4835D-4352-3211-9476-2D685663EDE6}</Project>
       <Name>VulkanExamples</Name>
     </ProjectReference>
-    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\base\base.vcxproj">
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\src\application\application.vcxproj">
+      <Project>{CD7DF3F3-797E-3E61-90FE-EECBED3D153B}</Project>
+      <Name>application</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\src\base\base.vcxproj">
       <Project>{8FADB14E-FED0-3F27-9176-06D4971B17CB}</Project>
       <Name>base</Name>
     </ProjectReference>
     <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\glfw\src\glfw.vcxproj">
       <Project>{F40851D3-D492-3AA0-ACC9-E939E9BE8A7E}</Project>
       <Name>glfw</Name>
+    </ProjectReference>
+    <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\src\graphics\graphics.vcxproj">
+      <Project>{545622EF-75A2-371C-BFE6-B7FFE0290B8A}</Project>
+      <Name>graphics</Name>
     </ProjectReference>
     <ProjectReference Include="F:\Rendering\vulkan_learning\cmake-build-debug-visual-studio\deps\SPIRV-Cross\spirv-cross.vcxproj">
       <Project>{E67C7330-FFB2-3DC2-9BD1-A8B57D9F5CD6}</Project>

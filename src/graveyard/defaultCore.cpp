@@ -7,7 +7,7 @@
 #include "defaultCore.hpp"
 
 
-namespace vub {
+namespace puffin {
 
     VkResult defaultCore::createWindow(int width, int height, GLFWframebuffersizefun frameBufferResizeCallback) {
         usingDefaultWindow = true;
@@ -37,7 +37,7 @@ namespace vub {
         usingDefaultInstance = true;
 
         // Enable validation layers
-        if(!vub::tools::checkValidationLayerSupport(validationLayers)) {
+        if(!puffin::tools::checkValidationLayerSupport(validationLayers)) {
             throw std::runtime_error("Validation layers not supported!");
         }
 
@@ -49,7 +49,7 @@ namespace vub {
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
-        auto extensions = vub::tools::getAllRequiredExtensions(usingGLFW, true);
+        auto extensions = puffin::tools::getAllRequiredExtensions(usingGLFW, true);
 
         VkInstanceCreateInfo instanceCreateInfo {};
         instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -69,7 +69,7 @@ namespace vub {
             std::cout << '\t' << extension.extensionName << '\n';
         }
 
-        if(usingGLFW && !vub::tools::checkGLFWRequiredExtensionsSupport(mExtensions)) {
+        if(usingGLFW && !puffin::tools::checkGLFWRequiredExtensionsSupport(mExtensions)) {
             throw std::runtime_error("Using GLFW without required extension support");
         }
 
@@ -141,9 +141,9 @@ namespace vub {
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-        std::vector<vub::tools::VulkanPhysicalDeviceSettings> settingsList {};
+        std::vector<puffin::tools::VulkanPhysicalDeviceSettings> settingsList {};
 
-        vub::tools::VulkanPhysicalDeviceSettings primarySettings{};
+        puffin::tools::VulkanPhysicalDeviceSettings primarySettings{};
         primarySettings.deviceExtensions = {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
@@ -153,7 +153,7 @@ namespace vub {
         primarySettings.deviceType = VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
         settingsList.push_back(primarySettings);
 
-        vub::tools::VulkanPhysicalDeviceSettings secondarySettings{};
+        puffin::tools::VulkanPhysicalDeviceSettings secondarySettings{};
         secondarySettings.deviceExtensions = {
                 VK_KHR_SWAPCHAIN_EXTENSION_NAME
         };
@@ -165,7 +165,7 @@ namespace vub {
 
         VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
         for(auto& settings : settingsList) {
-            physicalDevice = vub::tools::findAppropriatePhysicalDevice(devices, surface, settings);
+            physicalDevice = puffin::tools::findAppropriatePhysicalDevice(devices, surface, settings);
 
             if(physicalDevice != VK_NULL_HANDLE) {
                 std::cout << "adequate device found" << std::endl;
@@ -177,7 +177,7 @@ namespace vub {
             throw std::runtime_error("failed to find a suitable GPU");
         }
 
-        defaultVulkanDevice = new vub::VulkanDevice(physicalDevice);
+        defaultVulkanDevice = new puffin::VulkanDevice(physicalDevice);
 
         VkPhysicalDeviceFeatures deviceFeatures {};
         deviceFeatures.samplerAnisotropy = VK_TRUE;
@@ -189,6 +189,8 @@ namespace vub {
         for(auto layerName : validationLayers) {
             enabledLayers.push_back(layerName);
         }
+
+
 
         defaultVulkanDevice -> createLogicalDevice(
                 deviceFeatures,
@@ -281,7 +283,7 @@ namespace vub {
         createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                                  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        createInfo.pfnUserCallback = vub::tools::debugCallback;
+        createInfo.pfnUserCallback = puffin::tools::debugCallback;
         createInfo.pUserData = nullptr; // Optional
     }
 

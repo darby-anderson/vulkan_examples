@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <string.h>
 
-namespace vub {
+namespace puffin {
 
     /**
      * @brief Encapsulates access to a Vulkan buffer backed up by device memory 
