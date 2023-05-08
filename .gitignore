@@ -46,6 +46,9 @@ cmake-build*/
 # vscode 
 .vscode/
 
+# idea
+.idea/
+
 # vcpkg
 vcpkg/
 vcpkg_installed/
