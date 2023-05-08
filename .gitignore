@@ -41,7 +41,6 @@ build/
 bld/
 [Bb]in/
 [Oo]bj/
-cmake-build-debug-visual-studio/
 cmake-build*/
 
 # vscode 
