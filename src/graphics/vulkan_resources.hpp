@@ -3,7 +3,7 @@
 //
 #pragma once
 
-#include "vulkan/vulkan.h"
+#include "vk_mem_alloc.h"
 
 #include "gpu_enum.hpp"
 #include "platform.hpp"
@@ -224,7 +224,7 @@ struct VertexInputCreation {
 
 struct RenderPassOutput {
     VkFormat                    color_formats[k_max_image_outputs];
-    VkFormat                    depth_format;
+    VkFormat                    depth_stencil_format;
     u32                         num_color_formats;
 
     RenderPassOperation::Enum   color_operation = RenderPassOperation::DontCare;
@@ -234,7 +234,7 @@ struct RenderPassOutput {
     RenderPassOutput&           reset();
     RenderPassOutput&           color(VkFormat format);
     RenderPassOutput&           depth(VkFormat format);
-    RenderPassOutput&           set_operations(VkFormat format);
+    RenderPassOutput&           set_operations(RenderPassOperation::Enum color, RenderPassOperation::Enum depth, RenderPassOperation::Enum stencil);
 };
 
 struct RenderPassCreation {
@@ -263,8 +263,46 @@ struct RenderPassCreation {
     RenderPassCreation&         set_operations( RenderPassOperation::Enum color, RenderPassOperation::Enum depth, RenderPassOperation::Enum stencil );
 };
 
-//
-/*
+struct RasterizationCreation {
+
+};
+
+struct DepthStencilCreation {
+
+};
+
+struct BlendStateCreation {
+
+};
+
+struct Rect2D {
+    f32                     x = 0.0f;
+    f32                     y = 0.0f;
+    f32                     width = 0.0f;
+    f32                     height = 0.0f;
+};
+
+struct Rect2DInt {
+    i16                     x = 0;
+    i16                     y = 0;
+    u16                     width = 0;
+    u16                     height = 0;
+};
+
+struct Viewport {
+    Rect2DInt               rect;
+    f32                     min_depth = 0.0f;
+    f32                     max_depth = 0.0f;
+};
+
+struct ViewportState {
+    u32                         num_viewports = 0;
+    u32                         num_scissors = 0;
+
+    Viewport*                   viewport = nullptr;
+    Rect2DInt*                  scissors = nullptr;
+};
+
 struct PipelineCreation {
 
     RasterizationCreation       rasterization; // START HERE!!!!
@@ -283,4 +321,46 @@ struct PipelineCreation {
 
     PipelineCreation&           add_descriptor_set_layout(DescriptorSetLayoutHandle handle);
     RenderPassOutput&           render_pass_output();
-};*/
+};
+
+// Synchronization
+
+struct ImageBarrier {
+    TextureHandle               texture;
+};
+
+struct MemoryBarrier {
+    BufferHandle                texture;
+};
+
+struct ExecutionBarrier {
+    PipelineStage::Enum         source_pipeline_stage;
+    PipelineStage::Enum         destination_pipeline_stage;
+
+    u32                         new_barrier_experimental = u32_max;
+    u32                         load_operation = 0;
+
+    u32                         num_image_barriers;
+    u32                         num_buffer_barriers;
+
+    ImageBarrier                image_barriers[8];
+    MemoryBarrier               buffer_barriers[8];
+
+    ExecutionBarrier&           reset();
+    ExecutionBarrier&           set( PipelineStage::Enum source, PipelineStage::Enum destination);
+    ExecutionBarrier&           add_image_barrier( const ImageBarrier& image_barrier );
+    ExecutionBarrier&           add_memory_barrier( const MemoryBarrier& memory_barrier );
+};
+
+// Resources
+
+static const u32                k_max_swapchain_images = 3;
+
+struct DeviceStateVulkan;
+
+struct Buffer {
+    VkBuffer                    vk_buffer;
+    VmaAllocation               vma_allocation;
+
+    // START HERE!!
+};

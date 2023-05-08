@@ -229,16 +229,124 @@ RenderPassOutput& RenderPassOutput::reset() {
     for(u32 i = 0; i < k_max_image_outputs; i++) {
         color_formats[i] = VK_FORMAT_UNDEFINED;
     }
+    depth_stencil_format = VK_FORMAT_UNDEFINED;
+    color_operation = RenderPassOperation::DontCare;
+    depth_operation = RenderPassOperation::DontCare;
+    stencil_operation = RenderPassOperation::DontCare;
+
+    return *this;
+}
+
+RenderPassOutput& RenderPassOutput::color(VkFormat format) {
+    color_formats[num_color_formats++] = format;
+    return *this;
+}
+
+RenderPassOutput& RenderPassOutput::depth(VkFormat format) {
+    depth_stencil_format = format;
+    return *this;
+}
+
+RenderPassOutput& RenderPassOutput::set_operations(RenderPassOperation::Enum color, RenderPassOperation::Enum depth,
+                                                   RenderPassOperation::Enum stencil) {
+    color_operation = color;
+    depth_operation = depth;
+    stencil_operation = stencil;
 
     return *this;
 }
 
 // Render Pass Creation
 RenderPassCreation& RenderPassCreation::reset() {
-    num_color_formats = 0;
+    num_render_targets  = 0;
+    depth_stencil_texture = k_invalid_texture;
+    resize = 0;
+    scale_x = 1.f;
+    scale_y = 1.f;
+    color_operation = RenderPassOperation::DontCare;
+    depth_operation = RenderPassOperation::DontCare;
+    stencil_operation = RenderPassOperation::DontCare;
 
-    return <#initializer#>;
+    return *this;
 }
 
+RenderPassCreation& RenderPassCreation::add_render_texture(TextureHandle texture) {
+    output_textures[num_render_targets++] = texture;
 
+    return *this;
+}
 
+RenderPassCreation& RenderPassCreation::set_scaling(f32 scale_x, f32 scale_y, u8 resize) {
+    this->scale_x = scale_x;
+    this->scale_y = scale_y;
+    this->resize = resize;
+
+    return *this;
+}
+
+RenderPassCreation& RenderPassCreation::set_depth_stencil_texture(TextureHandle texture) {
+    depth_stencil_texture = texture;
+
+    return *this;
+}
+
+RenderPassCreation& RenderPassCreation::set_name(const char* name) {
+    this->name = name;
+
+    return *this;
+}
+
+RenderPassCreation& RenderPassCreation::set_type(RenderPassType::Enum type) {
+    this->type = type;
+
+    return *this;
+}
+
+RenderPassCreation& RenderPassCreation::set_operations(RenderPassOperation::Enum color, RenderPassOperation::Enum depth,
+                                                       RenderPassOperation::Enum stencil) {
+    this->color_operation = color;
+    this->depth_operation = depth;
+    this->stencil_operation = stencil;
+
+    return *this;
+}
+
+// Pipeline Creation
+
+PipelineCreation& PipelineCreation::add_descriptor_set_layout(DescriptorSetLayoutHandle handle) {
+    descriptor_set_layout[num_active_layouts++] = handle;
+    return *this;
+}
+
+RenderPassOutput& PipelineCreation::render_pass_output() {
+    return render_pass;
+}
+
+// Execution Barrier
+
+ExecutionBarrier& ExecutionBarrier::reset() {
+    num_image_barriers = 0;
+    num_buffer_barriers = 0;
+    destination_pipeline_stage = PipelineStage::DrawIndirect;
+
+    return *this;
+}
+
+ExecutionBarrier& ExecutionBarrier::set(PipelineStage::Enum source, PipelineStage::Enum destination) {
+    source_pipeline_stage = source;
+    destination_pipeline_stage = destination;
+
+    return *this;
+}
+
+ExecutionBarrier& ExecutionBarrier::add_image_barrier(const ImageBarrier& image_barrier) {
+    image_barriers[num_image_barriers++] = image_barrier;
+
+    return *this;
+}
+
+ExecutionBarrier& ExecutionBarrier::add_memory_barrier(const MemoryBarrier& memory_barrier) {
+    buffer_barriers[num_buffer_barriers] = memory_barrier;
+
+    return *this;
+}

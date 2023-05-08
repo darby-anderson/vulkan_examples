@@ -36,5 +36,6 @@ target_link_libraries(
 )
 
 target_include_directories(graphics PUBLIC ../../deps/stb)
+target_include_directories(graphics PUBLIC ../../deps/VulkanMemoryAllocator/includes)
 
 target_include_directories(graphics PUBLIC ../base)

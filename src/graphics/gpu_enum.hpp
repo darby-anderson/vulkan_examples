@@ -89,3 +89,15 @@ namespace VertexInputRate {
         return ((u32)e < Enum::Count ? s_value_names[(int)e] : "unsupported" );
     }
 } // namespace VertexInputRate
+
+namespace PipelineStage {
+
+    enum Enum {
+        DrawIndirect = 0, VertexInput = 1, VertexShader = 2, FragmentShader = 3, RenderTarget = 4, ComputeShader = 5, Transfer = 6
+    };
+
+    enum Mask {
+        DrawIndirect_mask = 1 << 0, VertexInput_mask = 1 << 1, VertexShader_mask = 1 << 2, FragmentShader_mask = 1 << 3, RenderTarget_mask = 1 << 4, ComputeShader_mask = 1 << 5, Transfer_mask = 1 << 6
+    };
+
+}

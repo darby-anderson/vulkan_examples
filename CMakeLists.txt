@@ -48,6 +48,9 @@ target_link_libraries(${PROJECT_NAME} spirv-cross-glsl spirv-cross-cpp spirv-cro
 # STB
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/deps/stb)
 
+# VMA
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/deps/VulkanMemoryAllocator/include)
+
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
