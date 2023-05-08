@@ -1,8 +1,0 @@
-# CMake generation dependency list for this directory.
-F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/BasicConfigVersion-SameMajorVersion.cmake.in
-F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/CMakePackageConfigHelpers.cmake
-F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/GNUInstallDirs.cmake
-F:/DevTools/CLion2022.3.1/bin/cmake/win/share/cmake-3.24/Modules/WriteBasicConfigVersionFile.cmake
-F:/Rendering/vulkan_learning/deps/tinyobjloader/CMakeLists.txt
-F:/Rendering/vulkan_learning/deps/tinyobjloader/tinyobjloader-config.cmake.in
-F:/Rendering/vulkan_learning/deps/tinyobjloader/tinyobjloader.pc.in
