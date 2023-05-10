@@ -35,7 +35,9 @@ target_link_libraries(
         spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect
 )
 
+# header external libraries
 target_include_directories(graphics PUBLIC ../../deps/stb)
 target_include_directories(graphics PUBLIC ../../deps/VulkanMemoryAllocator/includes)
 
+# internal headers
 target_include_directories(graphics PUBLIC ../base)

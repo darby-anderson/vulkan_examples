@@ -63,7 +63,61 @@ static DescriptorSetHandle          k_invalid_set       { k_invalid_index };
 static PipelineHandle               k_invalid_pipeline  { k_invalid_index };
 static RenderPassHandle             k_invalid_pass      { k_invalid_index };
 
-// Creation Datas
+// Resource creation structs
+struct Rect2D {
+    f32                     x = 0.0f;
+    f32                     y = 0.0f;
+    f32                     width = 0.0f;
+    f32                     height = 0.0f;
+};
+
+struct Rect2DInt {
+    i16                     x = 0;
+    i16                     y = 0;
+    u16                     width = 0;
+    u16                     height = 0;
+};
+
+struct Viewport {
+    Rect2DInt               rect;
+    f32                     min_depth = 0.0f;
+    f32                     max_depth = 0.0f;
+};
+
+struct ViewportState {
+    u32                         num_viewports = 0;
+    u32                         num_scissors = 0;
+
+    Viewport*                   viewport = nullptr;
+    Rect2DInt*                  scissors = nullptr;
+};
+
+struct StencilOperationState {
+    VkStencilOp                 fail = VK_STENCIL_OP_KEEP;
+    VkStencilOp                 pass = VK_STENCIL_OP_KEEP;
+    VkStencilOp                 depth_fail = VK_STENCIL_OP_KEEP;
+    VkCompareOp                 compare = VK_COMPARE_OP_ALWAYS;
+
+    u32                         compare_mask = 0xff;
+    u32                         write_mask   = 0xff;
+    u32                         reference    = 0xff;
+};
+
+struct DepthStencilCreation {
+    StencilOperationState       front;
+    StencilOperationState       back;
+    VkCompareOp                 depth_comparison    = VK_COMPARE_OP_ALWAYS;
+
+    u8                          depth_enable        = 1;
+    u8                          depth_write_enable  = 1;
+    u8                          stencil_enable      = 1;
+    u8                          pad                 = 5;
+
+    DepthStencilCreation() : depth_enable(0), depth_write_enable(0), stencil_enable(0) { }
+
+    DepthStencilCreation&       set_depth(bool write, VkCompareOp comparison_test);
+};
+
 // Buffers in Vulkan hold data to be used by the GPU -> typically best for larger sets like indices and vertices
 struct BufferCreation {
 
@@ -267,45 +321,14 @@ struct RasterizationCreation {
 
 };
 
-struct DepthStencilCreation {
-
-};
-
 struct BlendStateCreation {
 
 };
 
-struct Rect2D {
-    f32                     x = 0.0f;
-    f32                     y = 0.0f;
-    f32                     width = 0.0f;
-    f32                     height = 0.0f;
-};
-
-struct Rect2DInt {
-    i16                     x = 0;
-    i16                     y = 0;
-    u16                     width = 0;
-    u16                     height = 0;
-};
-
-struct Viewport {
-    Rect2DInt               rect;
-    f32                     min_depth = 0.0f;
-    f32                     max_depth = 0.0f;
-};
-
-struct ViewportState {
-    u32                         num_viewports = 0;
-    u32                         num_scissors = 0;
-
-    Viewport*                   viewport = nullptr;
-    Rect2DInt*                  scissors = nullptr;
-};
 
 struct PipelineCreation {
 
-    RasterizationCreation       rasterization; // START HERE!!!!
+    RasterizationCreation       rasterization;
     DepthStencilCreation        depth_stencil;
     BlendStateCreation          blend_state;
     VertexInputCreation         vertex_input;
@@ -359,8 +382,160 @@ static const u32                k_max_swapchain_images = 3;
 struct DeviceStateVulkan;
 
 struct Buffer {
+    // A higher level of abtraction from VkDeviceMemory,
+    // VkBuffers represent a section of memory
     VkBuffer                    vk_buffer;
     VmaAllocation               vma_allocation;
+    // Vulkan device operates on data in device memory via memory objects, these are VkDeviceMemory
+    VkDeviceMemory              vk_device_memory;
+    VkDeviceSize                vk_device_size;
 
-    // START HERE!!
+    VkBufferUsageFlags          type_flags  = 0;
+    ResourceUsageType::Enum     usage       = ResourceUsageType::Immutable;
+    u32                         size        = 0;
+    u32                         global_offset = 0;
+
+    BufferHandle                handle;
+    BufferHandle                parent_buffer;
+
+    cstring                     name = nullptr;
 };
+
+struct Sampler {
+    // Defines how to filter and wrap the texture data when sampling it
+    // during the rendering process
+    VkSampler                   vk_sampler;
+
+    // Mode used by samplers when sampling texture data
+    // NEAREST - nearest neighbor -> faster
+    // LINEAR - linear interpolation, smoother -> slower
+    VkFilter                    min_filter      = VK_FILTER_NEAREST;
+    VkFilter                    mag_filter      = VK_FILTER_NEAREST;
+    VkSamplerMipmapMode         mip_filter      = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+
+    VkSamplerAddressMode        address_mode_u  = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    VkSamplerAddressMode        address_mode_v  = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    VkSamplerAddressMode        address_mode_w  = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+    cstring                     name            = nullptr;
+};
+
+struct Texture {
+    VkImage                     vk_image;
+    VkImageView                 vk_image_view;
+    VkFormat                    vk_format;
+    VkImageLayout               vk_image_layout;
+    VmaAllocation               vma_allocation;
+
+    u16                         width = 1;
+    u16                         height = 1;
+    u16                         depth = 1;
+    u8                          mipmaps = 0;
+    u8                          flags = 0;
+
+    TextureHandle               handle;
+    TextureType::Enum           type = TextureType::Texture2D;
+
+    Sampler*                    sampler = nullptr;
+
+    cstring                     name = nullptr;
+};
+
+struct ShaderState {
+    VkPipelineShaderStageCreateInfo     shader_stage_info[ k_max_shader_stages ];
+
+    cstring                             name = nullptr;
+
+    u32                                 active_shaders = 0;
+    bool                                graphics_pipeline = false;
+};
+
+struct DescriptorBinding {
+    // A descriptor is a reference to a resource, VkDescriptorType is an Enum
+    // Examples: Sampler, Images, Buffer
+    VkDescriptorType        type;
+    u16                     start = 0;
+    u16                     count = 0;
+    u16                     set = 0;
+
+    cstring                 name = nullptr;
+};
+
+struct DescriptorSetLayout {
+    // Describes the type and order of each descriptor in the set
+    // as well as the binding point for the set.
+    // Created with vkAllocateDescriptorSet and updated with vkUpdateDescriptorSet
+    // Bound in the pipeline via vkCmdBindDescriptorSets
+    VkDescriptorSetLayout           vk_descriptor_set_layout;
+
+    VkDescriptorSetLayoutBinding*   vk_binding  = nullptr;
+    DescriptorBinding*              bindings    = nullptr;
+    u16                             num_bindings = 0;
+    u16                             set_index   = 0;
+
+    DescriptorSetHandle             handle;
+};
+
+struct DescriptorSet {
+    // Set of all resources used by a shader
+    VkDescriptorSet                 vk_descriptor_set;
+
+    // each resource handle represents a resource that is bound to a descriptor slot in the set
+    ResourceHandle*                 resources   = nullptr;
+    // each sampler handle represents a sampler that is bound to a desriptor slot in the set
+    SamplerHandle*                  samplers    = nullptr;
+    // represents the index of the descriptor slot in the descriptor set, that corresponds to a resource or sampler
+    u16*                            bindings    = nullptr;
+
+    const DescriptorSetLayout*      layout      = nullptr;
+    u32                             num_resources = 0;
+};
+
+struct Pipeline {
+    // Represents a graphics or compute pipeline
+    VkPipeline                      vk_pipeline;
+    // Describes the uniforms, push constants and descriptor set layouts used by the pipeline
+    VkPipelineLayout                vk_pipeline_layout;
+
+    // GRAPHICS vs. COMPUTE pipeline
+    VkPipelineBindPoint             vk_bind_point;
+
+    ShaderStateHandle               shader_state;
+
+    const DescriptorSetLayout*      descriptor_set_layout[k_max_descriptor_set_layouts];
+    DescriptorSetLayoutHandle       descriptor_set_layout_handle[k_max_descriptor_set_layouts];
+    u32                             num_active_layouts = 0;
+
+    DepthStencilCreation            depth_stencil;
+    BlendStateCreation              blend_state;
+    RasterizationCreation           rasterization;
+
+    PipelineHandle                  handle;
+    bool                            graphics_pipeline = true;
+};
+
+struct RenderPass {
+    VkRenderPass                    vk_render_pass;
+    VkFramebuffer                   vk_framebuffer;
+
+    RenderPassOutput                output;
+
+    TextureHandle                   output_texture[k_max_image_outputs];
+    TextureHandle                   output_depth;
+
+    RenderPassType::Enum            type;
+
+    f32                             scale_x     = 1.f;
+    f32                             scale_y     = 1.f;
+    u16                             width       = 0;
+    u16                             height      = 0;
+    u16                             dispatch_x  = 0;
+    u16                             dispatch_y  = 0;
+    u16                             dispatch_z  = 0;
+
+    u8                              resize      = 0;
+    u8                              num_render_targets = 0;
+
+    cstring                         name        = nullptr;
+};
+

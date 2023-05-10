@@ -3,6 +3,11 @@
 //
 #include "vulkan_resources.hpp"
 
+// Depth Stencil Creation
+DepthStencilCreation& DepthStencilCreation::set_depth(bool write, VkCompareOp comparison_test) {
+
+}
+
 // BufferCreation
 BufferCreation& BufferCreation::reset() {
     size = 0;
@@ -350,3 +355,4 @@ ExecutionBarrier& ExecutionBarrier::add_memory_barrier(const MemoryBarrier& memo
 
     return *this;
 }
+
