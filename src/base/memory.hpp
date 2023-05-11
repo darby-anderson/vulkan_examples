@@ -53,7 +53,7 @@ namespace puffin {
 
     struct StackAllocator : public Allocator {
         void                init(size_t size);
-        void                shutdown();
+        void                shutdown() const;
 
         void*               allocate(size_t size, size_t alignment) override;
         void*               allocate(size_t size, size_t alignment, cstring file, i32 line) override;
@@ -98,8 +98,8 @@ namespace puffin {
 
         PUFFIN_DECLARE_SERVICE(MemoryService );
 
-        void init(void* configuration);
-        void shutdown();
+        void init(void* configuration) override;
+        void shutdown() override;
 
         void imgui_draw();
 
@@ -111,13 +111,13 @@ namespace puffin {
         void test();
     };
 
-    #define rock_alloc(size, allocator)                     ((allocator)->allocate(size, 1, __FILE__, __LINE__))
-    #define rock_alloc_aligned(size, allocator, alignment)  ((allocator)->allocate(size, alignment, __FILE__, __LINE__))
+    #define puffin_alloc(size, allocator)                     ((allocator)->allocate(size, 1, __FILE__, __LINE__))
+    #define puffin_alloc_aligned(size, allocator, alignment)  ((allocator)->allocate(size, alignment, __FILE__, __LINE__))
 
-    #define rock_free(pointer, allocator)                   (allocator)->deallocate(pointer)
+    #define puffin_free(pointer, allocator)                   (allocator)->deallocate(pointer)
 
-    #define rock_kilo(size)                                 (size * 1024)
-    #define rock_mega(size)                                 (size * 1024 * 1024)
-    #define rock_giga(size)                                 (size * 1024 * 1024 * 1024)
+    #define puffin_kilo(size)                                 (size * 1024)
+    #define puffin_mega(size)                                 (size * 1024 * 1024)
+    #define puffin_giga(size)                                 (size * 1024 * 1024 * 1024)
 
 }

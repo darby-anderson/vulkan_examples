@@ -9,10 +9,9 @@ add_library(
 	"service.hpp"
 	"array.hpp"
 	"array.cpp"
-		assert.hpp log.hpp log.cpp)
-
-
-target_link_libraries(
-	base
-	PRIVATE
+	"assert.hpp"
+	"log.hpp"
+	"log.cpp"
 )
+
+target_link_libraries(base tlsf)

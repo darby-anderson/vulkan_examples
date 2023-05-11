@@ -42,7 +42,6 @@ BufferCreation& BufferCreation::set_name(const char* name_) {
 }
 
 // Texture Creation
-
 TextureCreation& TextureCreation::set_size(u16 width_, u16 height_, u16 depth_) {
     width = width_;
     height = height_;

@@ -22,6 +22,6 @@ namespace puffin {
         static constexpr cstring    k_name          = "puffin_log_service";
     };
 
-    #define rprint(format, ...)     puffin::LogService::instance()->print_format(format, __VA_ARGS__);
-    #define rprintret(format, ...)  puffin::LogService::instance()->print_format(format, __VA_ARGS__); puffin::LogService::instance()->print_format("\n");
+    #define rprint(format, ...)     puffin::LogService::instance()->print_format(format, ## __VA_ARGS__);
+    #define rprintret(format, ...)  puffin::LogService::instance()->print_format(format, ## __VA_ARGS__); puffin::LogService::instance()->print_format("\n");
 }

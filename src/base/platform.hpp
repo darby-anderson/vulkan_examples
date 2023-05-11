@@ -15,7 +15,7 @@
 #define PUFFIN_CONCAT_OPERATOR              x y
 
 #define PUFFIN_STRINGIZE( L )               #L
-#define PUFFIN_MAKESTRING( L )              PUFFIN_DECLARE_SERVICE(L)
+#define PUFFIN_MAKESTRING( L )              PUFFIN_STRINGIZE(L)
 #define PUFFIN_CONCAT(x, y)                 PUFFIN_CONCAT_OPERATOR(x, y)
 #define PUFFIN_LINE_STRING                  PUFFIN_MAKESTRING( __LINE__ )
 #define PUFFIN_FILELINE(MESSAGE)            __FILE__ "(" PUFFIN_LINE_STRING ") : " MESSAGE

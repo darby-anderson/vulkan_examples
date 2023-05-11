@@ -13,7 +13,7 @@
 
 namespace puffin {
 
-    static size_t s_size = rock_mega(32) + tlsf_size() + 8;
+    static size_t s_size = puffin_mega(32) + tlsf_size() + 8;
 
     // Memory Service /////////////////////////////////////////////
     static MemoryService s_memory_service;
@@ -184,7 +184,7 @@ namespace puffin {
         total_size = 0;
     }
 
-    void StackAllocator::shutdown() {
+    void StackAllocator::shutdown() const {
         free(memory);
     }
 

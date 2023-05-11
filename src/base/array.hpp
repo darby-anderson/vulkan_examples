@@ -47,8 +47,76 @@ namespace puffin {
     };
 
     template<typename T>
+    u32 Array<T>::capacity_in_bytes() const {
+        return capacity * sizeof(T);
+    }
+
+    template<typename T>
+    u32 Array<T>::size_in_bytes() const {
+        return size * sizeof(T);
+    }
+
+    template<typename T>
+    const T& Array<T>::front() const {
+        PASSERT(size);
+        return data[0];
+    }
+
+    template<typename T>
+    T& Array<T>::front() {
+        PASSERT(size);
+        return data[0];
+    }
+
+    template<typename T>
+    const T& Array<T>::back() const {
+        PASSERT(size);
+        return data[size - 1];
+    }
+
+    template<typename T>
+    T& Array<T>::back() {
+        PASSERT(size);
+        return data[size - 1];
+    }
+
+    template<typename T>
+    void Array<T>::set_capacity(u32 new_capacity) {
+        if(new_capacity > capacity) {
+            grow(new_capacity);
+        }
+    }
+
+    template<typename T>
+    void Array<T>::set_size(u32 new_size) {
+        if(new_size > capacity) {
+            grow(new_size);
+        }
+        size = new_size;
+    }
+
+    template<typename T>
+    void Array<T>::clear() {
+        size = 0;
+    }
+
+    template<typename T>
+    const T& Array<T>::operator[](u32 index) const {
+        PASSERT(index < size);
+        return data[index];
+    }
+
+    template<typename T>
+    T& Array<T>::operator[](u32 index) {
+        PASSERT(index < size);
+        return data[index];
+    }
+
+    template<typename T>
     void Array<T>::delete_swap(u32 index) {
         PASSERT(size > 0);
+        size--;
+        data[index] = data [size];
     }
 
     template<typename T>
