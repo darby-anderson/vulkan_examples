@@ -45,6 +45,10 @@ add_subdirectory(deps/SPIRV-Cross)
 # target_link_libraries(${PROJECT_NAME} SPIRV-Cross)
 target_link_libraries(${PROJECT_NAME} spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect)
 
+#TLSF
+add_subdirectory(deps/tlsf)
+target_link_libraries(${PROJECT_NAME} tlsf)
+
 # STB
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/deps/stb)
 

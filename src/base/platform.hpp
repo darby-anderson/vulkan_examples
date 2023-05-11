@@ -5,6 +5,24 @@
 
 #include <stdint.h>
 
+
+// Macros
+#define PuffinArraySize(array)              ( sizeof(array)/sizeof((array)[0]) )
+
+#define PUFFIN_INLINE                       inline
+#define PUFFIN_FINLINE                      always_inline
+#define PUFFIN_DEBUG_BREAK                  raise(SIGTRAP)
+#define PUFFIN_CONCAT_OPERATOR              x y
+
+#define PUFFIN_STRINGIZE( L )               #L
+#define PUFFIN_MAKESTRING( L )              PUFFIN_DECLARE_SERVICE(L)
+#define PUFFIN_CONCAT(x, y)                 PUFFIN_CONCAT_OPERATOR(x, y)
+#define PUFFIN_LINE_STRING                  PUFFIN_MAKESTRING( __LINE__ )
+#define PUFFIN_FILELINE(MESSAGE)            __FILE__ "(" PUFFIN_LINE_STRING ") : " MESSAGE
+
+// Unique names
+#define PUFFIN_UNIQUE_SUFFIX(PARAM)         PUFFIN_CONCAT(PARAM, __LINE__)
+
 // Native types typedefs
 typedef uint8_t     u8;
 typedef uint16_t    u16;

@@ -5,7 +5,12 @@
 
 // Depth Stencil Creation
 DepthStencilCreation& DepthStencilCreation::set_depth(bool write, VkCompareOp comparison_test) {
+    depth_write_enable = write;
+    depth_comparison = comparison_test;
+    // Setting depth to 1 means we want to use the depth test.
+    depth_enable = 1;
 
+    return *this;
 }
 
 // BufferCreation
