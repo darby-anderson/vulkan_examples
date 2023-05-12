@@ -8,8 +8,7 @@ add_library(
 	"platform.hpp"
 	"service.hpp"
 	"array.hpp"
-	"array.cpp"
-	"assert.hpp"
+    "assert.hpp"
 	"log.hpp"
 	"log.cpp"
 )
