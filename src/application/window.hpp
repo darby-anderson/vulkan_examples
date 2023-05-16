@@ -4,8 +4,12 @@
 
 #pragma once
 
+#include "GLFW/glfw3.h"
+
+#include "platform.hpp"
 #include "service.hpp"
 #include "array.hpp"
+
 
 namespace puffin {
 
@@ -32,9 +36,18 @@ namespace puffin {
 
         void            center_mouse(bool dragging);
 
-          
+        Array<OsMessagesCallback>   os_messages_callbacks;
+        Array<void*>                os_messages_callbacks_data;
 
+        void*           platform_handle     = nullptr;
+        bool            request_exist       = false;
+        bool            resized             = false;
+        bool            minimized           = false;
+        u32             width               = 0;
+        u32             height              = 0;
+        f32             display_refresh     = 1.0f / 60.0f;
 
+        static constexpr cstring k_name     = "puffin_window_service";
     };
 
 

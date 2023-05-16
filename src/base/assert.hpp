@@ -8,6 +8,6 @@
 
 namespace puffin {
 
-    #define PASSERT(condition)      if(!(condition)) { rprint(PUFFIN_FILELINE("FALSE\n"));  }
+    #define PASSERT(condition)      if(!(condition)) { p_print(PUFFIN_FILELINE("FALSE\n"));  }
 
 }
