@@ -10,7 +10,6 @@
 #include "service.hpp"
 #include "array.hpp"
 
-
 namespace puffin {
 
     struct WindowConfiguration {

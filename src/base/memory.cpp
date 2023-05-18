@@ -50,6 +50,10 @@ namespace puffin {
 
     // MEMORY FUNCTIONS
     // Only works when alignments are powers of 2, or 1
+    void memory_copy(void* destination, void* source, size_t size) {
+        memcpy(destination, source, size);
+    }
+
     size_t memory_align(size_t size, size_t alignment) {
         const size_t alignment_mask = alignment - 1;
         return (size + alignment_mask) & ~alignment_mask;

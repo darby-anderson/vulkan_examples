@@ -27,7 +27,23 @@ namespace puffin {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
+        window = glfwCreateWindow(config.width, config.height, "Puffin::Vulkan", nullptr, nullptr);
 
-        Service::init(configuration);
+        int window_width, window_height;
+        glfwGetWindowSize(window, &window_width, &window_height);
+        width = (u32) window_width;
+        height = (u32) window_height;
+
+        // Assigning this for outside use
+        platform_handle = window;
+
+        // OS Messages
+        os_messages_callbacks.init(config.allocator, 4);
+        os_messages_callbacks_data.init(config.allocator, 4);
+
+
+        const GLFWvidmode* mode = glfwGetVideoMode()
+        display_refresh = glfwGetMon
+
     }
 }

@@ -15,4 +15,4 @@ target_link_libraries(
         glfw
 )
 
-target_include_directories(graphics PUBLIC ../base)
+target_include_directories(application PUBLIC ../base)

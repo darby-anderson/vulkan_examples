@@ -9,6 +9,14 @@
 
 namespace puffin {
 
+    // Memory Functions /////////////////
+    void                    memory_copy(void* destination, void* source, size_t size);
+
+    //
+    // Calculate aligned memory size
+    size_t                  memory_align(size_t size, size_t alignment);
+
+
     struct MemoryStatistics {
         size_t              allocated_bytes;
         size_t              total_bytes;
