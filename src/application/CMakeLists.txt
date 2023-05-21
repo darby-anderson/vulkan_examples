@@ -4,6 +4,9 @@ add_library(
         "camera.cpp"
         "window.hpp"
         "window.cpp"
+        "input.hpp"
+        "input.cpp"
+        "keys.hpp"
 )
 
 

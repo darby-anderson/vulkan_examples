@@ -5,6 +5,7 @@
 #include "window.hpp"
 
 static GLFWwindow* window = nullptr;
+static GLFWmonitor* monitor = nullptr;
 
 namespace puffin {
 
@@ -41,9 +42,30 @@ namespace puffin {
         os_messages_callbacks.init(config.allocator, 4);
         os_messages_callbacks_data.init(config.allocator, 4);
 
-
-        const GLFWvidmode* mode = glfwGetVideoMode()
-        display_refresh = glfwGetMon
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        if(mode != nullptr) {
+            display_refresh = mode->refreshRate;
+        }
 
     }
+
+    void Window::shutdown() {
+        os_messages_callbacks_data.shutdown();
+        os_messages_callbacks.shutdown();
+
+        glfwDestroyWindow(window);
+        glfwTerminate();
+   }
+
+    void Window::set_fullscreen(bool value) {
+        if(value) {
+
+        } else {
+
+        }
+    }
+
+
+
 }
