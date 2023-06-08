@@ -6,6 +6,7 @@
 
 #include "GLFW/glfw3.h"
 
+#include "assert.hpp"
 #include "platform.hpp"
 #include "service.hpp"
 #include "array.hpp"
@@ -34,6 +35,11 @@ namespace puffin {
         void            deregister_os_messages_callback(OsMessagesCallback callback);
 
         void            center_mouse(bool dragging);
+
+        bool            has_focus();
+
+        void            set_window_user_pointer(void* user);
+        void            set_key_press_callback(GLFWkeyfun callback);
 
         Array<OsMessagesCallback>   os_messages_callbacks;
         Array<void*>                os_messages_callbacks_data;

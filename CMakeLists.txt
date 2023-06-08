@@ -44,9 +44,12 @@ target_link_libraries(${PROJECT_NAME} tinyobjloader)
 add_subdirectory(deps/SPIRV-Cross)
 target_link_libraries(${PROJECT_NAME} spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect)
 
-#TLSF
+# TLSF
 add_subdirectory(deps/tlsf)
 target_link_libraries(${PROJECT_NAME} tlsf)
+
+# WYHASH
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/deps/wyhash)
 
 # STB
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/deps/stb)

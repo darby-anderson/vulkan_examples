@@ -11,6 +11,15 @@ add_library(
     "assert.hpp"
 	"log.hpp"
 	"log.cpp"
+	"data_structures.hpp"
+	"data_structures.cpp"
+	"string.hpp"
+	"string.cpp"
+	"hash_map.hpp"
+	"bit.hpp"
+	"bit.cpp"
 )
 
 target_link_libraries(base tlsf)
+
+target_include_directories(base PUBLIC ../../deps/wyhash)

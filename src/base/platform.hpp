@@ -4,15 +4,22 @@
 #pragma once
 
 #include <stdint.h>
-
+#include <signal.h>
 
 // Macros
 #define PuffinArraySize(array)              ( sizeof(array)/sizeof((array)[0]) )
 
+#if defined (_MSC_VER)
+#define PUFFIN_INLINE                       inline
+#define PUFFIN_FINLINE                      __forceinline
+#define PUFFIN_DEBUG_BREAK                  __debugbreak();
+#define PUFFIN_CONCAT_OPERATOR(x, y)        x y // x##y was giving an invalid processor token error
+#else
 #define PUFFIN_INLINE                       inline
 #define PUFFIN_FINLINE                      always_inline
-#define PUFFIN_DEBUG_BREAK                  raise(SIGTRAP)
-#define PUFFIN_CONCAT_OPERATOR              x y
+#define PUFFIN_DEBUG_BREAK                  raise(SIGTRAP);
+#define PUFFIN_CONCAT_OPERATOR(x, y)        x y
+#endif
 
 #define PUFFIN_STRINGIZE( L )               #L
 #define PUFFIN_MAKESTRING( L )              PUFFIN_STRINGIZE(L)
