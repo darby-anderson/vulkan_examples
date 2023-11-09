@@ -22,7 +22,7 @@ namespace puffin {
         size_t          length;
 
         static bool     equals(const StringView& a, const StringView& b);
-        static bool     copy_to(const StringView& a, char* buffer, size_t buffer_size);
+        static void     copy_to(const StringView& a, char* buffer, size_t buffer_size);
     };
 
 

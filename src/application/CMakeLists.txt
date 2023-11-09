@@ -7,6 +7,8 @@ add_library(
         "input.hpp"
         "input.cpp"
         "keys.hpp"
+        "application.hpp"
+        "application.cpp"
 )
 
 

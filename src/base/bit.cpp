@@ -36,7 +36,7 @@ namespace puffin {
 
     u32 trailing_zeroes_u32(u32 x) {
 #if defined(_MSC_VER)
-        return _tzcnt_u32(x);
+        return _tzcnt_u32(x); // trailing zero count
 #else
         return __builtin_ctz(x);
 #endif

@@ -13,8 +13,8 @@
 #include "GLFW/glfw3.h"
 
 
-#include "../graphics/vulkan_device.hpp"
-#include "../graphics/VulkanSwapchain.hpp"
+#include "vulkan_device.hpp"
+#include "VulkanSwapchain.hpp"
 
 namespace puffin {
 

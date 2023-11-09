@@ -119,8 +119,11 @@ namespace puffin {
         void test();
     };
 
-    #define puffin_alloc(size, allocator)                     ((allocator)->allocate(size, 1, __FILE__, __LINE__))
-    #define puffin_alloc_aligned(size, allocator, alignment)  ((allocator)->allocate(size, alignment, __FILE__, __LINE__))
+    #define puffin_alloc(size, allocator)                                       ((allocator)->allocate(size, 1, __FILE__, __LINE__))
+    #define puffin_alloc_return_mem_pointer(size, allocator)                    ((u8*)(allocator)->allocate(size, 1, __FILE__, __LINE__))
+    #define puffin_alloc_return_type_pointer(type, allocator)                   ((type*)(allocator)->allocate(sizeof(type), 1, __FILE__, __LINE__))
+
+    #define puffin_alloc_aligned(size, allocator, alignment)                    ((type)(allocator)->allocate(size, alignment, __FILE__, __LINE__))
 
     #define puffin_free(pointer, allocator)                   (allocator)->deallocate(pointer)
 

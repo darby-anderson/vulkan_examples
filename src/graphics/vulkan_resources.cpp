@@ -3,6 +3,9 @@
 //
 #include "vulkan_resources.hpp"
 
+namespace puffin {
+
+
 // Depth Stencil Creation
 DepthStencilCreation& DepthStencilCreation::set_depth(bool write, VkCompareOp comparison_test) {
     depth_write_enable = write;
@@ -64,13 +67,13 @@ TextureCreation& TextureCreation::set_format_type(VkFormat format_, TextureType:
     return *this;
 }
 
-TextureCreation& TextureCreation::set_name(const char *name_) {
+TextureCreation& TextureCreation::set_name(const char* name_) {
     name = name_;
 
     return *this;
 }
 
-TextureCreation& TextureCreation::set_data(void *data_) {
+TextureCreation& TextureCreation::set_data(void* data_) {
     initial_data = data_;
 
     return *this;
@@ -98,7 +101,8 @@ SamplerCreation& SamplerCreation::set_address_mode_uv(VkSamplerAddressMode u, Vk
     return *this;
 }
 
-SamplerCreation& SamplerCreation::set_address_mode_uvw(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w) {
+SamplerCreation&
+SamplerCreation::set_address_mode_uvw(VkSamplerAddressMode u, VkSamplerAddressMode v, VkSamplerAddressMode w) {
     address_mode_u = u;
     address_mode_v = v;
     address_mode_w = w;
@@ -148,7 +152,8 @@ DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::reset() {
     return *this;
 }
 
-DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::add_binding(const DescriptorSetLayoutCreation::Binding& binding) {
+DescriptorSetLayoutCreation&
+DescriptorSetLayoutCreation::add_binding(const DescriptorSetLayoutCreation::Binding& binding) {
     bindings[num_bindings++] = binding;
 
     return *this;
@@ -198,7 +203,8 @@ DescriptorSetCreation& DescriptorSetCreation::buffer(BufferHandle buffer, u16 bi
     return *this;
 }
 
-DescriptorSetCreation& DescriptorSetCreation::texture_sampler(TextureHandle texture, SamplerHandle sampler, u16 binding) {
+DescriptorSetCreation&
+DescriptorSetCreation::texture_sampler(TextureHandle texture, SamplerHandle sampler, u16 binding) {
     // Set a default sampler
     samplers[num_resources] = sampler;
     bindings[num_resources] = binding;
@@ -235,7 +241,7 @@ VertexInputCreation& VertexInputCreation::add_vertex_stream(const VertexAttribut
 // Render Pass Output
 RenderPassOutput& RenderPassOutput::reset() {
     num_color_formats = 0;
-    for(u32 i = 0; i < k_max_image_outputs; i++) {
+    for (u32 i = 0; i < k_max_image_outputs; i++) {
         color_formats[i] = VK_FORMAT_UNDEFINED;
     }
     depth_stencil_format = VK_FORMAT_UNDEFINED;
@@ -267,7 +273,7 @@ RenderPassOutput& RenderPassOutput::set_operations(RenderPassOperation::Enum col
 
 // Render Pass Creation
 RenderPassCreation& RenderPassCreation::reset() {
-    num_render_targets  = 0;
+    num_render_targets = 0;
     depth_stencil_texture = k_invalid_texture;
     resize = 0;
     scale_x = 1.f;
@@ -355,8 +361,46 @@ ExecutionBarrier& ExecutionBarrier::add_image_barrier(const ImageBarrier& image_
 }
 
 ExecutionBarrier& ExecutionBarrier::add_memory_barrier(const MemoryBarrier& memory_barrier) {
-    buffer_barriers[num_buffer_barriers] = memory_barrier;
+    memory_barriers[num_memory_barriers++] = memory_barrier;
 
     return *this;
 }
+
+// Blend State
+
+BlendState& BlendState::set_color(VkBlendFactor source_color, VkBlendFactor destination_color, VkBlendOp color_operation) {
+    this->source_color = source_color;
+    this->destination_color = destination_color;
+    this->color_operation = color_operation;
+
+    return *this;
+}
+
+BlendState& BlendState::set_alpha(VkBlendFactor source_alpha, VkBlendFactor destination_alpha, VkBlendOp alpha_operation) {
+    this->source_alpha = source_alpha;
+    this->destination_alpha = destination_alpha;
+    this->alpha_operation = alpha_operation;
+
+    return *this;
+}
+
+BlendState& BlendState::set_color_write_state(ColorWriteEnabled::Mask value) {
+    this->color_write_mask = value;
+
+    return *this;
+}
+
+// BlendStateCreation
+
+BlendStateCreation& BlendStateCreation::reset() {
+    active_states = 0;
+
+    return *this;
+}
+
+BlendState& BlendStateCreation::add_blend_state() {
+    return blend_states[active_states++];
+}
+
+};
 

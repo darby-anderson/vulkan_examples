@@ -3,24 +3,16 @@
 # add_library(base STATIC ${BASE_SRC})
 add_library(
         graphics
-        "VulkanInitializers.hpp"
-        "VulkanBuffer.hpp"
-        "VulkanBuffer.cpp"
-        "vulkan_device.hpp"
-        "vulkan_device.cpp"
-        "VulkanTexture.hpp"
-        "VulkanTexture.cpp"
-        "VulkanTools.hpp"
-        "VulkanTools.cpp"
-        "VulkanSwapchain.hpp"
-        "VulkanSwapChain.cpp"
-        "VulkanFrameBuffer.hpp"
         "model.hpp"
         "model.cpp"
         "vertex.hpp"
         "vulkan_resources.hpp"
         "vulkan_resources.cpp"
         "gpu_enum.hpp"
+        "gpu_device.hpp"
+        "gpu_device.cpp"
+        "command_buffer.hpp"
+        "command_buffer.cpp"
 )
 
 

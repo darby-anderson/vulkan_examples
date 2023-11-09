@@ -5,7 +5,7 @@
 
 #include "VulkanBuffer.hpp"
 #include "VulkanTools.hpp"
-#include "vulkan_resources.hpp"
+#include "../graphics/vulkan_resources.hpp"
 
 #include <vulkan/vulkan.h>
 #include <algorithm>

@@ -18,6 +18,8 @@ add_library(
 	"hash_map.hpp"
 	"bit.hpp"
 	"bit.cpp"
+	"process.hpp"
+	"process.cpp"
 )
 
 target_link_libraries(base tlsf)
