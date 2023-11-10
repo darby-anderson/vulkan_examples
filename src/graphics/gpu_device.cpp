@@ -2347,7 +2347,7 @@ void GpuDevice::resize_swapchain() {
     destroy_swapchain();
     vkDestroySurfaceKHR(vulkan_instance, vulkan_window_surface, vulkan_allocation_callbacks);
 
-    VkResult result = glfwCreateWindowSurface(vulkan_instance, window, NULL, &vulkan_window_surface);
+    VkResult result = glfwCreateWindowSurface(vulkan_instance, glfw_window, NULL, &vulkan_window_surface);
     check(result);
 
     create_swapchain();
@@ -2357,20 +2357,193 @@ void GpuDevice::resize_swapchain() {
     Texture* vk_texture_to_delete = access_texture(texture_to_delete);
     vk_texture_to_delete->handle = texture_to_delete;
     Texture* vk_depth_texture = access_texture(depth_texture);
-    vulkan_resize_texture(*this, vk_depth_texture, vk_texture_to_delete)
+    vulkan_resize_texture(*this, vk_depth_texture, vk_texture_to_delete, swapchain_width, swapchain_height, 1);
 
+    destroy_texture(texture_to_delete);
 
+    RenderPassCreation swapchain_pass_creation = {};
+    swapchain_pass_creation.set_type(RenderPassType::Swapchain)
+        .set_name("Swapchain");
+    vulkan_create_swapchain_pass(*this, swapchain_pass_creation, vk_swapchain_pass);
+
+    vkDeviceWaitIdle(vulkan_device);
 }
 
+// Descriptor Set ///////////////////////////
+void GpuDevice::update_descriptor_set(DescriptorSetHandle descriptor_set) {
+    if(descriptor_set.index < descriptor_sets.pool_size) {
+        DescriptorSetUpdate new_update = { descriptor_set, current_frame };
+        descriptor_set_updates.push(new_update);
+    } else {
+        p_print("Graphics error: trying to update invalid DescriptorSet &u\n", descriptor_set.index);
+    }
+}
 
+void GpuDevice::update_descriptor_set_instant(const DescriptorSetUpdate& update) {
+    // Use a dummy descriptor set to delete the vulkan descriptor set handle
+    DescriptorSetHandle dummy_delete_descriptor_set_handle = { descriptor_sets.obtain_resource() };
+    DescriptorSet* dummy_delete_descriptor_set = access_descriptor_set(dummy_delete_descriptor_set_handle);
 
+    DescriptorSet* descriptor_set = access_descriptor_set(update.descriptor_set);
+    const DescriptorSetLayout* descriptor_set_layout = descriptor_set->layout;
 
+    dummy_delete_descriptor_set->vk_descriptor_set = descriptor_set->vk_descriptor_set;
+    dummy_delete_descriptor_set->bindings = nullptr;
+    dummy_delete_descriptor_set->resources = nullptr;
+    dummy_delete_descriptor_set->samplers = nullptr;
+    dummy_delete_descriptor_set->num_resources = 0;
 
+    destroy_descriptor_set(dummy_delete_descriptor_set_handle);
 
+    // Allocate the new descriptor set and update its content
+    VkWriteDescriptorSet descriptor_write[8];
+    VkDescriptorBufferInfo buffer_info[8];
+    VkDescriptorImageInfo image_info[8];
 
+    Sampler* vk_default_sampler = access_sampler(default_sampler);
 
+    VkDescriptorSetAllocateInfo allocInfo { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+    allocInfo.descriptorPool = vulkan_descriptor_pool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &descriptor_set->layout->vk_descriptor_set_layout;
+    vkAllocateDescriptorSets(vulkan_device, &allocInfo, &descriptor_set->vk_descriptor_set);
 
+    u32 num_resources = descriptor_set_layout->num_bindings;
+    vulkan_fill_write_descriptor_sets(*this, descriptor_set_layout, descriptor_set->vk_descriptor_set,
+                                        descriptor_write, buffer_info, image_info, vk_default_sampler->vk_sampler,
+                                        num_resources, descriptor_set->resources, descriptor_set->samplers,
+                                        descriptor_set->bindings);
 
+    vkUpdateDescriptorSets(vulkan_device, num_resources, descriptor_write, 0, nullptr);
+}
+
+void GpuDevice::resize_output_textures(puffin::RenderPassHandle render_pass, u32 width, u32 height) {
+
+    // For each texture, create a temporary pooled texture and cache the handles to delete.
+    // This is because we substitute just the Vulkan texture when resizing so that
+    // external users don't need to update the handle.
+
+    RenderPass* vk_render_pass = access_render_pass(render_pass);
+    if(vk_render_pass) {
+        // no need to resize
+        if(!vk_render_pass->resize) {
+            return;
+        }
+
+        // Calculate new width and height based on render pass sizing information
+        u16 new_width = (u16)(width * vk_render_pass->scale_x);
+        u16 new_height = (u16)(height * vk_render_pass->scale_y);
+
+        // Resize textures if needed
+        const u32 rts = vk_render_pass->num_render_targets;
+        for(u32 i = 0; i < rts; i++) {
+            TextureHandle texture = vk_render_pass->output_textures[i];
+            Texture* vk_texture = access_texture(texture);
+
+            if(vk_texture->width == new_width && vk_texture->height == new_height) {
+                continue;
+            }
+
+            // Queue deletion of texture by creating a temporary one
+            TextureHandle texture_to_delete = { textures.obtain_resource() };
+            Texture* vk_texture_to_delete = access_texture(texture_to_delete);
+
+            // Update handle so it can be used to update bindless to dummy texture
+            vk_texture_to_delete->handle = texture_to_delete;
+            vulkan_resize_texture(*this, vk_texture, vk_texture_to_delete, new_width, new_height, 1);
+
+            destroy_texture(texture_to_delete);
+        }
+
+        if(vk_render_pass->output_depth.index != k_invalid_index) {
+            Texture* vk_texture = access_texture(vk_render_pass->output_depth);
+
+            if(vk_texture->width != new_width || vk_texture->height != new_height) {
+                // Queue deletion of texture by creating a temporary one
+                TextureHandle texture_to_delete = { textures.obtain_resource() };
+                Texture* vk_texture_to_delete = access_texture(texture_to_delete);
+                // Update the handle so it can be used to update bindless to dummy texture
+                vk_texture_to_delete->handle = texture_to_delete;
+                vulkan_resize_texture(*this, vk_texture, vk_texture_to_delete, new_width, new_height, 1);
+
+                destroy_texture(texture_to_delete);
+            }
+        }
+
+        // Again: create temporary resources to use the standard deferred deletion mechanism
+        RenderPassHandle render_pass_to_destroy = { render_passes.obtain_resource() };
+        RenderPass* vk_render_pass_to_destroy = access_render_pass(render_pass_to_destroy);
+
+        vk_render_pass_to_destroy->vk_framebuffer = vk_render_pass->vk_framebuffer;
+        // This is checked in the destroy method to proceed with frame buffer destruction
+        vk_render_pass_to_destroy->num_render_targets = 1;
+        // Set to 0 so deletion won't be performed
+        vk_render_pass_to_destroy->vk_render_pass = 0;
+
+        destroy_render_pass(render_pass_to_destroy);
+
+        // Update render pass size
+        vk_render_pass->width = new_width;
+        vk_render_pass->height = new_height;
+
+        // Recreate the framebuffer if present (mainly for dispatch-only passes)
+        if(vk_render_pass->vk_framebuffer) {
+            vulkan_create_framebuffer(*this, vk_render_pass, vk_render_pass->output_textures,
+                                      vk_render_pass->num_render_targets, vk_render_pass->output_depth);
+        }
+    }
+}
+
+void GpuDevice::fill_barrier(RenderPassHandle render_pass, ExecutionBarrier& out_barrier) {
+    RenderPass* vk_render_pass = access_render_pass(render_pass);
+
+    out_barrier.num_image_barriers = 0;
+
+    if(vk_render_pass) {
+        const u32 rts = vk_render_pass->num_render_targets;
+        for(u32 i = 0; i < rts; i++) {
+            out_barrier.image_barriers[out_barrier.num_image_barriers++].texture = vk_render_pass->output_textures[i];
+        }
+
+        if(vk_render_pass->output_depth.index != k_invalid_index) {
+            out_barrier.image_barriers[out_barrier.num_image_barriers++].texture = vk_render_pass->output_depth;
+        }
+    }
+}
+
+void GpuDevice::new_frame() {
+
+    // Fence wait and reset
+    VkFence* render_complete_fence = &vulkan_command_buffer_executed_fence[current_frame];
+
+    if(vkGetFenceStatus(vulkan_device, *render_complete_fence) != VK_SUCCESS) {
+        vkWaitForFences(vulkan_device, 1, render_complete_fence, VK_TRUE, UINT64_MAX);
+    }
+
+    vkResetFences(vulkan_device, 1, render_complete_fence);
+    // command pool reset
+    command_buffer_ring.reset_pools(current_frame);
+    // Dynamic memory update
+    const u32 used_size = dynamic_allocated_size - (dynamic_per_frame_size * previous_frame);
+    dynamic_max_per_frame_size = puffin_max(used_size, dynamic_max_per_frame_size);
+    dynamic_allocated_size = dynamic_per_frame_size * current_frame;
+
+    // Descriptor Set Updates
+    if(descriptor_set_updates.size) {
+        for(i32 i = descriptor_set_updates.size - 1; i >= 0; i--) {
+            DescriptorSetUpdate& update = descriptor_set_updates[i];
+
+            update_descriptor_set_instant(update);
+
+            update.frame_issued = u32_max;
+            descriptor_set_updates.delete_swap(i);
+        }
+    }
+}
+
+void GpuDevice::present() {
+
+}
 
 } // puffin namespace
 
