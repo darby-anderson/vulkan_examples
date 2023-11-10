@@ -2298,7 +2298,7 @@ void GpuDevice::destroy_swapchain() {
     vkDestroySwapchainKHR(vulkan_device, vulkan_swapchain, vulkan_allocation_callbacks);
 }
 
-VkRenderPass GpuDevice::get_render_pass(const RenderPassOutput& output, cstring name) {
+VkRenderPass GpuDevice::get_vulkan_render_pass(const RenderPassOutput& output, cstring name) {
     // Hash the memory output and find the referenced VkRenderPass
     // RenderPassOutput should save everything we need
     u64 hashed_memory = puffin::hash_bytes((void*)&output, sizeof(RenderPassOutput));
@@ -2314,7 +2314,52 @@ VkRenderPass GpuDevice::get_render_pass(const RenderPassOutput& output, cstring 
 
 static void vulkan_resize_texture(GpuDevice& gpu, Texture* v_texture, Texture* v_texture_to_delete, u16 width, u16 height, u16 depth) {
     // Cache handles to destroy after function, since we're updating texture in place
-    
+    v_texture_to_delete->vk_image_view = v_texture->vk_image_view;
+    v_texture_to_delete->vk_image = v_texture->vk_image;
+    v_texture_to_delete->vma_allocation = v_texture->vma_allocation;
+
+    // Re-create image in place
+    TextureCreation tc;
+    tc.set_flags(v_texture->mipmaps, v_texture->flags)
+        .set_format_type(v_texture->vk_format, v_texture->type)
+        .set_name(v_texture->name)
+        .set_size(width, height, depth);
+    vulkan_create_texture(gpu, tc, v_texture->handle, v_texture);
+}
+
+void GpuDevice::resize_swapchain() {
+    vkDeviceWaitIdle(vulkan_device);
+
+    VkSurfaceCapabilitiesKHR surface_capabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vulkan_physical_device, vulkan_window_surface, &surface_capabilities);
+    VkExtent2D swapchain_extent = surface_capabilities.currentExtent;
+
+    // Skip zero-sized swapchain
+    if(swapchain_extent.width == 0 || swapchain_extent.height) {
+        return;
+    }
+
+    // Internal destroy of swapchain pass to reatin the same handle
+    RenderPass* vk_swapchain_pass = access_render_pass(swapchain_pass);
+    vkDestroyRenderPass(vulkan_device, vk_swapchain_pass->vk_render_pass, vulkan_allocation_callbacks);
+
+    // Destroy swapchain images and framebuffers
+    destroy_swapchain();
+    vkDestroySurfaceKHR(vulkan_instance, vulkan_window_surface, vulkan_allocation_callbacks);
+
+    VkResult result = glfwCreateWindowSurface(vulkan_instance, window, NULL, &vulkan_window_surface);
+    check(result);
+
+    create_swapchain();
+
+    // Resize depth texture, maintaining handle, using a dummy texture to destroy
+    TextureHandle texture_to_delete = { textures.obtain_resource() };
+    Texture* vk_texture_to_delete = access_texture(texture_to_delete);
+    vk_texture_to_delete->handle = texture_to_delete;
+    Texture* vk_depth_texture = access_texture(depth_texture);
+    vulkan_resize_texture(*this, vk_depth_texture, vk_texture_to_delete)
+
+
 }
 
 
