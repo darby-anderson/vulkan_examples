@@ -2543,6 +2543,587 @@ void GpuDevice::new_frame() {
 
 void GpuDevice::present() {
 
+    VkResult result = vkAcquireNextImageKHR(vulkan_device, vulkan_swapchain, UINT64_MAX,
+                                            vulkan_image_acquired_semaphore, VK_NULL_HANDLE, &vulkan_image_index);
+
+    if(result == VK_ERROR_OUT_OF_DATE_KHR) {
+        resize_swapchain();
+
+        // Advance frame counters that are skipped during this frame
+        frame_counters_advance();
+
+        return;
+    }
+
+    VkFence* render_complete_fence = &vulkan_command_buffer_executed_fence[current_frame];
+    VkSemaphore* render_complete_semaphore = &vulkan_render_complete_semaphore[current_frame];
+
+    // copy all commands
+    VkCommandBuffer enqueued_command_buffers[4];
+    for(u32 c = 0; c < num_queued_command_buffers; c++) {
+        CommandBuffer* command_buffer = queued_command_buffers[c];
+
+        enqueued_command_buffers[c] = command_buffer->vk_command_buffer;
+
+        if(command_buffer->is_recording && command_buffer->current_render_pass && (command_buffer->current_render_pass->type != RenderPassType::Compute)) {
+            vkCmdEndRenderPass(command_buffer->vk_command_buffer);
+        }
+
+        vkEndCommandBuffer(command_buffer->vk_command_buffer);
+    }
+
+    // Submit command buffers
+    VkSemaphore wait_semaphores[] = { vulkan_image_acquired_semaphore };
+    VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+    VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = wait_semaphores;
+    submit_info.pWaitDstStageMask = wait_stages;
+    submit_info.commandBufferCount = num_queued_command_buffers;
+    submit_info.pCommandBuffers = enqueued_command_buffers;
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = render_complete_semaphore; // telling present info we're good to present
+
+    vkQueueSubmit(vulkan_queue, 1, &submit_info, *render_complete_fence);
+
+    VkPresentInfoKHR present_info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = render_complete_semaphore;
+
+    VkSwapchainKHR swapchains[] = { vulkan_swapchain };
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = swapchains;
+    present_info.pImageIndices = &vulkan_image_index;
+    present_info.pResults = nullptr;
+    result = vkQueuePresentKHR(vulkan_queue, &present_info);
+
+    num_queued_command_buffers = 0;
+
+    // GPU Timestamp resolve
+    if(timestamps_enabled) {
+        if(gpu_timestamp_manager->has_valid_queries()) {
+            // Query GPU for timestamps
+            const u32 query_offset = (current_frame * gpu_timestamp_manager->queries_per_frame) * 2;
+            const u32 query_count = gpu_timestamp_manager->current_query * 2;
+            vkGetQueryPoolResults(vulkan_device, vulkan_timestamp_query_pool, query_offset, query_count,
+                                  sizeof(u64) * query_count * 2, &gpu_timestamp_manager->timestamps_data[query_offset],
+                                  sizeof(gpu_timestamp_manager->timestamps_data[0]), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+
+            // Calculate and cache the elapsed time
+            for(u32 i = 0; i < gpu_timestamp_manager->current_query; i++) {
+                u32 index = (current_frame * gpu_timestamp_manager->queries_per_frame) + i;
+
+                GPUTimestamp& timestamp = gpu_timestamp_manager->timestamps[index];
+
+                double start = (double)gpu_timestamp_manager->timestamps_data[(index * 2)];
+                double end = (double)gpu_timestamp_manager->timestamps_data[(index * 2) + 1];
+                double range = end - start;
+                double elapsed_time = range * gpu_timestamp_frequency;
+
+                timestamp.elapsed_ms = elapsed_time;
+                timestamp.frame_index = absolute_frame;
+            }
+        } else if(gpu_timestamp_manager->current_query) {
+            p_print("Asymmetrical GPU queries, missing pop of some markers!\n");
+        }
+
+        gpu_timestamp_manager->reset();
+        gpu_timestamp_reset = true;
+    } else {
+        gpu_timestamp_reset = false;
+    }
+
+    if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || resized) {
+        resized = false;
+        resize_swapchain();
+
+        // Advance frame counters that are skipped during this frame
+        frame_counters_advance();
+
+        return;
+    }
+
+    frame_counters_advance();
+
+    // Resource deletion using reverse iteration and swap with last element
+    if(resource_deletion_queue.size > 0) {
+        for(i32 i = resource_deletion_queue.size - 1; i >= 0; i--){
+            ResourceUpdate& resource_deletion = resource_deletion_queue[i];
+
+            if(resource_deletion.current_frame == current_frame) {
+
+                switch(resource_deletion.type) {
+                    case ResourceDeletionType::Buffer:
+                    {
+                        destroy_buffer_instant(resource_deletion.handle);
+                        break;
+                    }
+                    case ResourceDeletionType::Pipeline:
+                    {
+                        destroy_pipeline_instant(resource_deletion.handle);
+                        break;
+                    }
+                    case ResourceDeletionType::RenderPass:
+                    {
+                        destroy_render_pass_instant(resource_deletion.handle);
+                        break;
+                    }
+                    case ResourceDeletionType::DescriptorSet:
+                    {
+                        destroy_descriptor_set_instant(resource_deletion.handle);
+                        break;
+                    }
+                    case ResourceDeletionType::DescriptorSetLayout:
+                    {
+                        destroy_descriptor_set_layout_instant(resource_deletion.handle);
+                        break;
+                    }
+                    case ResourceDeletionType::Sampler:
+                    {
+                        destroy_sampler_instant( resource_deletion.handle );
+                        break;
+                    }
+                    case ResourceDeletionType::ShaderState:
+                    {
+                        destroy_shader_state_instant( resource_deletion.handle );
+                        break;
+                    }
+                    case ResourceDeletionType::Texture:
+                    {
+                        destroy_texture_instant( resource_deletion.handle );
+                        break;
+                    }
+                }
+
+                // mark resource as free
+                resource_deletion.current_frame = u32_max;
+
+                // swap element
+                resource_deletion_queue.delete_swap(i);
+            }
+        }
+    }
+}
+
+static VkPresentModeKHR to_vk_present_mode(PresentMode::Enum mode) {
+    switch(mode) {
+        case PresentMode::VSyncFast:
+            return VK_PRESENT_MODE_MAILBOX_KHR;
+        case PresentMode::VSyncRelaxed:
+            return VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+        case PresentMode::Immediate:
+            return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        case PresentMode::VSync:
+        default:
+            return VK_PRESENT_MODE_FIFO_KHR;
+    }
+}
+
+void GpuDevice::set_present_mode(PresentMode::Enum mode) {
+    // Request a certain mode and confirm that it is available. If not, use VK_PRESENT_MODE_FIFO_KHR which is mandatory
+    u32 supported_count = 0;
+
+    static VkPresentModeKHR supported_mode_allocated[8];
+    vkGetPhysicalDeviceSurfacePresentModesKHR(vulkan_physical_device, vulkan_window_surface, &supported_count, NULL);
+    PASSERT(supported_count < 8);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(vulkan_physical_device, vulkan_window_surface, &supported_count, supported_mode_allocated);
+
+    bool mode_found = false;
+    VkPresentModeKHR requested_mode = to_vk_present_mode(mode);
+    for(u32 j = 0; j < supported_count; j++) {
+        if(requested_mode == supported_mode_allocated[j]) {
+            mode_found = true;
+            break;
+        }
+    }
+
+    // Default to VK_PRESENT_MODE_FIFO_KHR that is guarenteed to always be supported
+    vulkan_present_mode = mode_found ? requested_mode : VK_PRESENT_MODE_FIFO_KHR;
+
+    // Use 4 for immediate??
+    vulkan_swapchain_image_count = 3;
+
+    present_mode = mode_found ? mode : PresentMode::VSync;
+}
+
+void GpuDevice::link_texture_sampler(TextureHandle texture, SamplerHandle sampler) {
+    Texture* texture_vk = access_texture(texture);
+    Sampler* sampler_vk = access_sampler(sampler);
+
+    texture_vk->sampler = sampler_vk;
+}
+
+void GpuDevice::frame_counters_advance() {
+    previous_frame = current_frame;
+    current_frame = (current_frame + 1) % vulkan_swapchain_image_count;
+
+    absolute_frame++;
+}
+
+void GpuDevice::queue_command_buffer(CommandBuffer* command_buffer) {
+    queued_command_buffers[num_queued_command_buffers++] = command_buffer;
+}
+
+CommandBuffer* GpuDevice::get_command_buffer(QueueType::Enum type, bool begin) {
+    CommandBuffer* cb = command_buffer_ring.get_command_buffer(current_frame, begin);
+
+    // The first command buffer issued in the frame is used to reset the timestamp queries used
+    if(gpu_timestamp_reset && begin) {
+        // these are currently indices
+        vkCmdResetQueryPool(cb->vk_command_buffer, vulkan_timestamp_query_pool, current_frame * gpu_timestamp_manager->queries_per_frame * 2,
+                            gpu_timestamp_manager->queries_per_frame);
+
+        gpu_timestamp_reset = false;
+    }
+
+    return cb;
+}
+
+CommandBuffer* GpuDevice::get_instant_command_buffer() {
+    CommandBuffer* cb = command_buffer_ring.get_command_buffer_instant(current_frame, false);
+    return cb;
+}
+
+
+// Resource Description Query //////////////////////////////
+
+void GpuDevice::query_buffer(BufferHandle buffer, BufferDescription& out_description) {
+    if(buffer.index != k_invalid_index) {
+        const Buffer* buffer_data = access_buffer(buffer);
+
+        out_description.name = buffer_data->name;
+        out_description.size = buffer_data->size;
+        out_description.type_flags = buffer_data->type_flags;
+        out_description.usage = buffer_data->usage;
+        out_description.parent_handle = buffer_data->parent_buffer;
+        out_description.native_handle = (void*) &buffer_data->vk_buffer;
+    }
+}
+
+void GpuDevice::query_texture(TextureHandle texture, TextureDescription& out_description) {
+    if(texture.index != k_invalid_index) {
+        const Texture* texture_data = access_texture(texture);
+
+        out_description.width = texture_data->width;
+        out_description.height = texture_data->height;
+        out_description.depth = texture_data->depth;
+        out_description.format = texture_data->vk_format;
+        out_description.mipmaps = texture_data->mipmaps;
+        out_description.type = texture_data->type;
+        out_description.render_target = (texture_data->flags & TextureFlags::RenderTarget_mask) == TextureFlags::RenderTarget_mask;
+        out_description.compute_access = (texture_data->flags & TextureFlags::Compute_mask) == TextureFlags::Compute_mask;
+        out_description.native_handle = (void*)&texture_data->vk_image;
+        out_description.name = texture_data->name;
+    }
+}
+
+void GpuDevice::query_pipeline(PipelineHandle pipeline, PipelineDescription& out_description) {
+    if(pipeline.index != k_invalid_index) {
+        const Pipeline* pipeline_data = access_pipeline(pipeline);
+
+        out_description.shader = pipeline_data->shader_state;
+    }
+}
+
+void GpuDevice::query_sampler(SamplerHandle sampler, SamplerDescription& out_description) {
+    if(sampler.index != k_invalid_index) {
+        const Sampler* sampler_data = access_sampler(sampler);
+
+        out_description.address_mode_u = sampler_data->address_mode_u;
+        out_description.address_mode_v = sampler_data->address_mode_v;
+        out_description.address_mode_w = sampler_data->address_mode_w;
+
+        out_description.min_filter = sampler_data->min_filter;
+        out_description.mag_filter = sampler_data->mag_filter;
+        out_description.mip_filter = sampler_data->mip_filter;
+
+        out_description.name = sampler_data->name;
+    }
+}
+
+void GpuDevice::query_descriptor_set_layout(DescriptorSetLayoutHandle descriptor_set_layout, DescriptorSetLayoutDescription& out_description) {
+    if(descriptor_set_layout.index != k_invalid_index) {
+        const DescriptorSetLayout* descriptor_set_layout_data = access_descriptor_set_layout(descriptor_set_layout);
+
+        const u32 num_bindings = descriptor_set_layout_data->num_bindings;
+        for(size_t i = 0; i < num_bindings; i++) {
+            out_description.bindings[i].name = descriptor_set_layout_data->bindings[i].name;
+            out_description.bindings[i].type = descriptor_set_layout_data->bindings[i].type;
+        }
+
+        out_description.num_active_bindings = descriptor_set_layout_data->num_bindings;
+    }
+}
+
+void GpuDevice::query_descriptor_set(DescriptorSetHandle descriptor_set, DescriptorSetDescription& out_description) {
+    if(descriptor_set.index != k_invalid_index) {
+        const DescriptorSet* descriptor_set_data = access_descriptor_set(descriptor_set);
+
+        out_description.num_active_resources = descriptor_set_data->num_resources;
+        for(u32 i = 0; i < out_description.num_active_resources; i++) {
+            // Why commented out??
+            // out_description.resources[ i ].data = descriptor_set_data->resources[ i ].data;
+        }
+    }
+}
+
+const RenderPassOutput& GpuDevice::get_render_pass_output(RenderPassHandle render_pass) const {
+    const RenderPass* vulkan_render_pass = access_render_pass(render_pass);
+    return vulkan_render_pass->output;
+}
+
+
+// Resource map/unmap /////////////////////////////////////////////
+
+void* GpuDevice::map_buffer(const MapBufferParameters& parameters) {
+    if(parameters.buffer.index == k_invalid_index) {
+        return nullptr;
+    }
+
+    Buffer* buffer = access_buffer(parameters.buffer);
+
+    if(buffer->parent_buffer.index == dynamic_buffer.index) {
+        buffer->global_offset == dynamic_allocated_size;
+        return dynamic_allocate(parameters.size == 0 ? buffer->size : parameters.size);
+    }
+
+    void* data;
+    vmaMapMemory(vma_allocator, buffer->vma_allocation, &data);
+
+    return data;
+}
+
+void GpuDevice::unmap_buffer(const MapBufferParameters& parameters) {
+    if(parameters.buffer.index == k_invalid_index) {
+        return;
+    }
+
+    Buffer* buffer = access_buffer(parameters.buffer);
+    if(buffer->parent_buffer.index == dynamic_buffer.index) {
+        return;
+    }
+
+    vmaUnmapMemory(vma_allocator, buffer->vma_allocation);
+}
+
+void* GpuDevice::dynamic_allocate(u32 size) {
+    void* mapped_memory = dynamic_mapped_memory + dynamic_allocated_size;
+    dynamic_allocated_size += (u32)puffin::memory_align(size, s_ubo_alignment);
+    return mapped_memory;
+}
+
+void GpuDevice::set_buffer_global_offset(puffin::BufferHandle buffer, u32 offset) {
+    if(buffer.index == k_invalid_index) {
+        return;
+    }
+
+    Buffer* vulkan_buffer = access_buffer(buffer);
+    vulkan_buffer->global_offset = offset;
+}
+
+u32 GpuDevice::get_gpu_timestamps(puffin::GPUTimestamp* out_timestamps) {
+    return gpu_timestamp_manager->resolve(previous_frame, out_timestamps);
+}
+
+void GpuDevice::push_gpu_timestamp(puffin::CommandBuffer* command_buffer, cstring name) {
+    if(!timestamps_enabled) {
+        return;
+    }
+
+    u32 query_index = gpu_timestamp_manager->push(current_frame, name);
+    vkCmdWriteTimestamp(command_buffer->vk_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                        vulkan_timestamp_query_pool, query_index);
+}
+
+void GpuDevice::pop_gpu_timestamp(puffin::CommandBuffer* command_buffer) {
+    if(!timestamps_enabled) {
+        return;
+    }
+
+    u32 query_index = gpu_timestamp_manager->pop(current_frame);
+    vkCmdWriteTimestamp(command_buffer->vk_command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                            vulkan_timestamp_query_pool, query_index);
+}
+
+
+// Utility methods ///////////////////////////
+
+void check_result(VkResult result) {
+    if(result == VK_SUCCESS) {
+        return;
+    }
+
+    p_print("vulkan error: code(%u)", result);
+    if(result < 0) {
+        PASSERTM(false, "Vulkan error: aborting");
+    }
+}
+
+
+// Device /////////////////////////////////////
+
+BufferHandle GpuDevice::get_fullscreen_vertex_buffer() const {
+    return fullscreen_vertex_buffer;
+}
+
+RenderPassHandle GpuDevice::get_swapchain_pass() const {
+    return swapchain_pass;
+}
+
+TextureHandle GpuDevice::get_dummy_texture() const {
+    return dummy_texture;
+}
+
+BufferHandle GpuDevice::get_dummy_constant_buffer() const {
+    return dummy_constant_buffer;
+}
+
+void GpuDevice::resize(u16 width, u16 height) {
+    swapchain_width = width;
+    swapchain_height = height;
+
+    resized = true;
+}
+
+
+// Resource Access //////////////////////////
+
+ShaderState* GpuDevice::access_shader_state(puffin::ShaderStateHandle shader) {
+    return (ShaderState*)shaders.access_resource(shader.index);
+}
+
+const ShaderState* GpuDevice::access_shader_state(puffin::ShaderStateHandle shader) const {
+    return (const ShaderState*)shaders.access_resource(shader.index);
+}
+
+Texture* GpuDevice::access_texture(TextureHandle texture) {
+    return (Texture*) textures.access_resource(texture.index);
+}
+
+const Texture* GpuDevice::access_texture(TextureHandle texture) const {
+    return (const Texture*) textures.access_resource(texture.index);
+}
+
+Buffer* GpuDevice::access_buffer(BufferHandle buffer) {
+    return (Buffer*)buffers.access_resource(buffer.index);
+}
+
+const Buffer* GpuDevice::access_buffer(BufferHandle buffer) const {
+    return (const Buffer*)buffers.access_resource(buffer.index);
+}
+
+Pipeline* GpuDevice::access_pipeline(puffin::PipelineHandle pipeline) {
+    return (Pipeline*)pipelines.access_resource(pipeline.index);
+}
+
+const Pipeline* GpuDevice::access_pipeline(puffin::PipelineHandle pipeline) const {
+    return (const Pipeline*)pipelines.access_resource(pipeline.index);
+}
+
+Sampler* GpuDevice::access_sampler(SamplerHandle sampler) {
+    return (Sampler*)samplers.access_resource(sampler.index);
+}
+
+const Sampler* GpuDevice::access_sampler(SamplerHandle sampler) const {
+    return (const Sampler*)samplers.access_resource(sampler.index);
+}
+
+DescriptorSetLayout* GpuDevice::access_descriptor_set_layout(puffin::DescriptorSetLayoutHandle layout) {
+    return (DescriptorSetLayout*) descriptor_set_layouts.access_resource(layout.index);
+}
+
+const DescriptorSetLayout* GpuDevice::access_descriptor_set_layout(puffin::DescriptorSetLayoutHandle layout) const {
+    return (const DescriptorSetLayout*) descriptor_set_layouts.access_resource(layout.index);
+}
+
+RenderPass* GpuDevice::access_render_pass(RenderPassHandle render_pass) {
+    return (RenderPass*) render_passes.access_resource(render_pass.index);
+}
+
+const RenderPass* GpuDevice::access_render_pass(RenderPassHandle render_pass) const {
+    return (const RenderPass*) render_passes.access_resource(render_pass.index);
+}
+
+// GPU TIMESTAMP MANAGER ////////////////////////////////////////
+
+void GPUTimestampManager::init(Allocator* allocator_, u16 queries_per_frame_, u16 max_frames) {
+    allocator = allocator_;
+    queries_per_frame = queries_per_frame_;
+
+    // Data is start, end in 2 u64 numbers
+    const u32 k_data_per_query = 2;
+    const size_t allocated_size = sizeof(GPUTimestamp) * queries_per_frame * max_frames + sizeof(u64) * queries_per_frame * max_frames * k_data_per_query;
+    u8* memory = puffin_alloc_return_mem_pointer(allocated_size, allocator);
+
+    timestamps = (GPUTimestamp*) memory;
+    timestamps_data = (u64*)(memory + sizeof(GPUTimestamp) * queries_per_frame * max_frames);
+
+    reset();
+}
+
+void GPUTimestampManager::shutdown() {
+    puffin_free(timestamps, allocator);
+}
+
+void GPUTimestampManager::reset() {
+    current_query = 0;
+    parent_index = 0;
+    current_frame_resolved = false;
+    depth = 0;
+}
+
+bool GPUTimestampManager::has_valid_queries() const {
+    return current_query > 0 && (depth == 0);
+}
+
+u32 GPUTimestampManager::resolve(u32 current_frame, GPUTimestamp* timestamps_to_fill) {
+    puffin::memory_copy(timestamps_to_fill, &timestamps[current_frame * queries_per_frame], sizeof(GPUTimestamp) * current_query);
+    return current_query;
+}
+
+u32 GPUTimestampManager::push(u32 current_frame, const char* name) {
+    u32 query_index = (current_frame * queries_per_frame) + current_query;
+
+    GPUTimestamp& timestamp = timestamps[query_index];
+    timestamp.parent_index = (u16)parent_index;
+    timestamp.start = query_index * 2;
+    timestamp.end = timestamp.start + 1;
+    timestamp.name = name;
+    timestamp.depth = (u16)depth++;
+
+    parent_index = current_query;
+    current_query++;
+
+    return (query_index * 2);
+}
+
+u32 GPUTimestampManager::pop( u32 current_frame ) {
+
+    u32 query_index = ( current_frame * queries_per_frame ) + parent_index;
+    GPUTimestamp& timestamp = timestamps[ query_index ];
+    // Go up a level
+    parent_index = timestamp.parent_index;
+    --depth;
+
+    return ( query_index * 2 ) + 1;
+}
+
+DeviceCreation& DeviceCreation::set_window( u32 width_, u32 height_, void* handle ) {
+    width = ( u16 )width_;
+    height = ( u16 )height_;
+    window = handle;
+    return *this;
+}
+
+DeviceCreation& DeviceCreation::set_allocator( Allocator* allocator_ ) {
+    allocator = allocator_;
+    return *this;
+}
+
+DeviceCreation& DeviceCreation::set_linear_allocator( StackAllocator* allocator ) {
+    temporary_allocator = allocator;
+    return *this;
 }
 
 } // puffin namespace

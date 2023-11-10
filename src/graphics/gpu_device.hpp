@@ -149,7 +149,7 @@ namespace puffin {
 
         // Map/Unmap
         void*                   map_buffer(const MapBufferParameters& parameters);
-        void*                   unmap_buffer(const MapBufferParameters& parameters);
+        void                    unmap_buffer(const MapBufferParameters& parameters);
 
         void*                   dynamic_allocate(u32 size);
 
