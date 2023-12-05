@@ -13,6 +13,8 @@ add_library(
         "gpu_device.cpp"
         "command_buffer.hpp"
         "command_buffer.cpp"
+        "renderer.hpp"
+        "renderer.cpp"
 )
 
 

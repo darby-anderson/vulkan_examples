@@ -12,6 +12,9 @@
 #include "application/keys.hpp"
 
 #include "graphics/gpu_device.hpp"
+#include "graphics/command_buffer.hpp"
+#include "graphics/renderer.hpp"
+
 
 int main() {
 

@@ -20,6 +20,7 @@ add_library(
 	"bit.cpp"
 	"process.hpp"
 	"process.cpp"
+	"resource_manager.hpp"
 )
 
 target_link_libraries(base tlsf)
