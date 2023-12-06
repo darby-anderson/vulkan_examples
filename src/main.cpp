@@ -16,6 +16,7 @@
 #include "graphics/renderer.hpp"
 
 
+
 int main() {
 
     // Init services
@@ -37,5 +38,18 @@ int main() {
     InputConfiguration i_conf { &window };
     InputService input_handler;
     input_handler.init(&i_conf);
+
+    // graphics
+    DeviceCreation dc;
+    dc.set_window(window.width, window.height, window.platform_handle).set_allocator(allocator).set_linear_allocator(&scratch_allocator);
+
+    GpuDevice gpu;
+    gpu.init(dc);
+
+    ResourceManager rm;
+    rm.init(allocator, nullptr);
+
+    // GPUProfiler gpu_profiler;
+    // gpu_profiler.ini
 
 }

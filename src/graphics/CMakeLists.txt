@@ -15,6 +15,8 @@ add_library(
         "command_buffer.cpp"
         "renderer.hpp"
         "renderer.cpp"
+        "puffin_imgui.hpp"
+        "puffin_imgui.cpp"
 )
 
 
