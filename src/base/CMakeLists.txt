@@ -21,7 +21,9 @@ add_library(
 	"process.hpp"
 	"process.cpp"
 	"resource_manager.hpp"
-)
+	"numerics.hpp"
+	"numerics.cpp"
+		color.hpp color.cpp)
 
 target_link_libraries(base tlsf)
 

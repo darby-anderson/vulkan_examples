@@ -233,7 +233,7 @@ VertexInputCreation& VertexInputCreation::add_vertex_stream(const VertexStream& 
 }
 
 
-VertexInputCreation& VertexInputCreation::add_vertex_stream(const VertexAttribute& attribute) {
+VertexInputCreation& VertexInputCreation::add_vertex_attribute(const VertexAttribute& attribute) {
     vertex_attributes[num_vertex_attributes++] = attribute;
     return *this;
 }

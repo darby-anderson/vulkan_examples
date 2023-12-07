@@ -17,6 +17,8 @@ add_library(
         "renderer.cpp"
         "puffin_imgui.hpp"
         "puffin_imgui.cpp"
+        "gpu_profiler.hpp"
+        "gpu_profiler.cpp"
 )
 
 

@@ -14,6 +14,7 @@
 #include "graphics/gpu_device.hpp"
 #include "graphics/command_buffer.hpp"
 #include "graphics/renderer.hpp"
+#include "graphics/puffin_imgui.hpp"
 
 
 

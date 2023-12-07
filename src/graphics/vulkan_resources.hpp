@@ -295,10 +295,8 @@ struct VertexInputCreation {
     VertexAttribute vertex_attributes[k_max_vertex_attributes];
 
     VertexInputCreation& reset();
-
     VertexInputCreation& add_vertex_stream(const VertexStream& stream);
-
-    VertexInputCreation& add_vertex_stream(const VertexAttribute& attribute);
+    VertexInputCreation& add_vertex_attribute(const VertexAttribute& attribute);
 
 };
 
