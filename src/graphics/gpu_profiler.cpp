@@ -1,4 +1,4 @@
-//
+    //
 // Created by darby on 12/6/2023.
 //
 
@@ -190,6 +190,30 @@ void GPUProfiler::imgui_draw() {
         }
 
         ImGui::Dummy({canvas_size.x, widget_height});
+    }
+
+    ImGui::SetNextItemWidth(100.f);
+    ImGui::LabelText("", "Max %3.4fms", max_time);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100.f);
+    ImGui::LabelText("", "Min %3.4fms", min_time);
+    ImGui::SameLine();
+    ImGui::LabelText("", "Ave %3.4fms", average_time);
+
+    ImGui::Separator();
+    ImGui::Checkbox("Pause", &paused);
+
+    static const char* items[] = {
+            "200ms", "100ms", "66ms", "33ms", "16ms", "8ms", "4ms"
+    };
+
+    static const float max_durations[] = {
+            200.f, 100.f, 66.f, 33.f, 16.f, 8.f, 4.f
+    };
+
+    static int max_duration_index = 4;
+    if(ImGui::Combo("Graph Max", &max_duration_index, items, IM_ARRAYSIZE(items))) {
+        max_duration = max_durations[max_duration_index];
     }
 
 }

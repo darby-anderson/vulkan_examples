@@ -23,7 +23,11 @@ add_library(
 	"resource_manager.hpp"
 	"numerics.hpp"
 	"numerics.cpp"
-		color.hpp color.cpp)
+	"color.hpp"
+	"color.cpp"
+	"gltf.hpp"
+	"gltf.cpp"
+)
 
 target_link_libraries(base tlsf)
 

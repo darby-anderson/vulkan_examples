@@ -15,6 +15,17 @@
 #include "graphics/command_buffer.hpp"
 #include "graphics/renderer.hpp"
 #include "graphics/puffin_imgui.hpp"
+#include "graphics/gpu_profiler.hpp"
+
+#include "cglm/struct/mat3.h"
+#include "cglm/struct/mat4.h"
+#include "cglm/struct/cam.h"
+#include "cglm/struct/affine.h"
+
+#include "imgui.h"
+
+#include "file_system.hpp"
+#include "gltf.hpp"
 
 
 

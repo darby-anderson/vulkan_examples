@@ -18,6 +18,10 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(deps/glfw)
 target_link_libraries(${PROJECT_NAME} glfw)
 
+# CGLM - https://github.com/recp/cglm
+add_subdirectory(deps/cglm-0.9.1)
+target_link_libraries(${PROJECT_NAME} cglm)
+
 # GLM - https://github.com/g-truc/glm/blob/master/manual.md#-15-finding-glm-with-cmake
 add_subdirectory(deps/glm)
 target_link_libraries(${PROJECT_NAME} glm::glm)
@@ -35,6 +39,11 @@ target_sources(${PROJECT_NAME} PRIVATE
 		${IMGUI_DIR}/imgui_tables.cpp
 		${IMGUI_DIR}/imgui_widgets.cpp
 		)
+
+# JSON - https://github.com/nlohmann/json#embedded
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(deps/json)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
 # TINYOBJLOADER
 add_subdirectory(deps/tinyobjloader)
