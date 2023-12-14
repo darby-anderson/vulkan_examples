@@ -298,7 +298,7 @@ struct glTF {
     u32                     samplers_count;
     Sampler*                samplers;
     i32                     scene;
-    u32                     scenes_count;
+    u32                     scene_count;
     Scene*                  scenes;
     u32                     skins_count;
     Skin*                   skins;

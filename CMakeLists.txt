@@ -41,9 +41,10 @@ target_sources(${PROJECT_NAME} PRIVATE
 		)
 
 # JSON - https://github.com/nlohmann/json#embedded
-set(JSON_BuildTests OFF CACHE INTERNAL "")
-add_subdirectory(deps/json)
-target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
+include_directories(deps/json/single_include/nlohmann)
+#set(JSON_BuildTests OFF CACHE INTERNAL "")
+#add_subdirectory(deps/json)
+#target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
 # TINYOBJLOADER
 add_subdirectory(deps/tinyobjloader)
