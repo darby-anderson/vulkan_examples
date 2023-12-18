@@ -140,7 +140,7 @@ struct MeshPrimitive {
     };
 
     u32                     attribute_count;
-    Attribute*              attribute;
+    Attribute*              attributes;
     i32                     indices;
     i32                     material;
 
@@ -173,7 +173,7 @@ struct Accessor {
     };
 
     i32                     buffer_view;
-    i32                     buffer_offset;
+    i32                     byte_offset;
 
     i32                     component_type;
     i32                     count;
@@ -220,8 +220,8 @@ struct Material {
     u32                     emissive_factor_count;
     f32*                    emissive_factor;
     TextureInfo*            emissive_texture;
-    MaterialNormalTextureInfo*      normal_info;
-    MaterialOcclusionTextureInfo*   occulsion_texture;
+    MaterialNormalTextureInfo*      normal_texture;
+    MaterialOcclusionTextureInfo*   occlusion_texture;
     MaterialPBRMetallicRoughness*   pbr_metallic_roughness;
     StringBuffer            name;
 };
