@@ -27,6 +27,8 @@ add_library(
 	"color.cpp"
 	"gltf.hpp"
 	"gltf.cpp"
+	"time.hpp"
+	"time.cpp"
 )
 
 target_link_libraries(base tlsf)

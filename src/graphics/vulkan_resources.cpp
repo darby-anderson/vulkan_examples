@@ -19,7 +19,7 @@ DepthStencilCreation& DepthStencilCreation::set_depth(bool write, VkCompareOp co
 // BufferCreation
 BufferCreation& BufferCreation::reset() {
     size = 0;
-    initialData = nullptr;
+    initial_data = nullptr;
 
     return *this;
 }
@@ -33,7 +33,7 @@ BufferCreation& BufferCreation::set(VkBufferUsageFlags flags, ResourceUsageType:
 }
 
 BufferCreation& BufferCreation::set_data(void* data_) {
-    initialData = data_;
+    initial_data = data_;
 
     return *this;
 }
@@ -341,7 +341,7 @@ RenderPassOutput& PipelineCreation::render_pass_output() {
 
 ExecutionBarrier& ExecutionBarrier::reset() {
     num_image_barriers = 0;
-    num_buffer_barriers = 0;
+    num_memory_barriers = 0;
     destination_pipeline_stage = PipelineStage::DrawIndirect;
 
     return *this;
