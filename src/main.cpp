@@ -208,8 +208,198 @@ int main(int argc, char** argv) {
         PipelineCreation pipeline_creation;
 
         // Vertex input
-        pipeline_creation.vertex_input.add_vertex_attribute( {0, 0, 0, VertexComponentFormat::Float3});
+        pipeline_creation.vertex_input.add_vertex_attribute( {0, 0, 0, VertexComponentFormat::Float3}); // position
         pipeline_creation.vertex_input.add_vertex_stream({0, 12, VertexInputRate::PerVertex});
+
+        pipeline_creation.vertex_input.add_vertex_attribute({1, 1, 0, VertexComponentFormat::Float4}); // tangent
+        pipeline_creation.vertex_input.add_vertex_stream({1, 16, VertexInputRate::PerVertex});
+
+        pipeline_creation.vertex_input.add_vertex_attribute({2, 2, 0, VertexComponentFormat::Float3}); // normal
+        pipeline_creation.vertex_input.add_vertex_stream({2, 12, VertexInputRate::PerVertex});
+
+        pipeline_creation.vertex_input.add_vertex_attribute({3, 3, 0, VertexComponentFormat::Float2}); // texcoord
+        pipeline_creation.vertex_input.add_vertex_stream({3, 8, VertexInputRate::PerVertex});
+
+        // Render pass
+        pipeline_creation.render_pass = gpu.get_swapchain_output();
+
+        // Depth
+        pipeline_creation.depth_stencil.set_depth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
+
+        // Shader state
+        const char* vs_code = R"FOO(
+            #version 450
+            layout(std140, binding = 0) uniform LocalConstants {
+                mat4 m;
+                mat4 vp;
+                mat4 mInverse;
+                vec4 eye;
+                vec4 light;
+            };
+
+            layout(location = 0) in vec3 position;
+            layout(location = 1) in vec4 tangent;
+            layout(location = 2) in vec3 normal;
+            layout(location = 3) in vec2 texCoord0;
+
+            layout(location = 0) out vec2 vTexCoord0;
+            layout(location = 1) out vec3 vNormal;
+            layout(location = 2) out vec4 vTangent;
+            layout(location = 3) out vec4 vPosition;
+
+            void main() {
+                gl_Position = vp * m * vec4(position, 1);
+                vPosition = m * vec4(position, 1.0);
+                vTexCoord0 = texCoord0;
+                vNormal = mat3(mInverse) * normal;
+                vTangent = tangent;
+            }
+)FOO";
+
+        const char* fs_code = R"FOO(
+            #version 450
+            layout(std140, binding = 0) uniform LocalConstants {
+                mat4 m;
+                mat4 vp;
+                mat4 mInverse;
+                vec4 eye;
+                vec4 light;
+            };
+
+            layout(std140, binding = 4) uniform MaterialConstant {
+                vec4 base_color_factor;
+            };
+
+            layout(binding = 1) uniform sampler2D diffuseTexture;
+            layout(binding = 2) uniform sampler2D occlusionRoughnessMetalnessTexture;
+            layout(binding = 3) uniform sampler2D normalTexture;
+
+            layout(location = 0) in vec2 vTexcoord0;
+            layout(location = 1) in vec3 vNormal;
+            layout(location = 2) in vec4 vTangent;
+            layout(location = 3) in vec4 vPosition;
+
+            layout(location = 0) out vec4 frag_color;
+
+            #define PI 3.1415926538
+
+            vec3 decode_srgb(vec3 c) {
+                vec3 result;
+                if(c.r < 0.04045) {
+                    result.r = c.r / 12.92;
+                } else {
+                    result.r = pow((c.r + 0.55) / 1.055, 2.4);
+                }
+
+                if(c.g < 0.04045) {
+                    result.g = c.g / 12.92;
+                } else {
+                    result.g = pow((c.g + 0.55) / 1.055, 2.4);
+                }
+
+                if(c.b < 0.04045) {
+                    result.b = c.b / 12.92;
+                } else {
+                    result.b = pow((c.b + 0.55) / 1.055, 2.4);
+                }
+
+                return clamp(result, 0.0, 1.0);
+            }
+
+            vec3 encode_srgb(vec3 c) {
+                vec3 result;
+                if(c.r <= 0.0031308) {
+                    result.r = c.r * 12.92;
+                } else {
+                    result.r = 1.055 * pow(c.r, 1.0 / 2.4) - 0.055;
+                }
+
+                if(c.g <= 0.0031308) {
+                    result.g = c.g * 12.92;
+                } else {
+                    result.g = 1.055 * pow(c.g, 1.0 / 2.4) - 0.055;
+                }
+
+                if(c.b <= 0.0031308) {
+                    result.b = c.b * 12.92;
+                } else {
+                    result.b = 1.055 * pow(c.b, 1.0 / 2.4) - 0.055;
+                }
+
+                return clamp(result, 0.0, 1.0);
+            }
+
+            float heaviside(float v) {
+                if(v > 0.0) {
+                    return 1.0;
+                }
+
+                return 0.0;
+            }
+
+            void main() {
+                vec3 bump_normal = normalize(texture(normalTexture, vTexcoord0).rgb * 2.0 - 1.0);
+                vec3 tangent = normalize(vTangent.xyz);
+                vec3 bitangent = cross(normalize(vNormal), tangent) * vTangent.w;
+
+                mat3 TBN = transpose(mat3(
+                    tangent,
+                    bitangent,
+                    normalize(vNormal)
+                ));
+
+                vec3 V = normalize(TBN * (eye.xyz - vPosition.xyz));
+                vec3 L = normalize(TBN * (light.xyz - vPosition.xyz));
+                vec3 N = bump_normal;
+                vec3 H = normalize(L + V);
+
+                vec4 rmo = texture(occlusionRoughnessMetalnessTexture, vTexcoord0);
+
+                // Green channel contains roughness values
+                float roughness = rmo.g;
+                float alpha = pow(roughness, 2.0);
+
+                // Blue channel contains metalness
+                float metalness = rmo.b;
+
+                // Red channel contains occlusion value
+                vec4 base_color = texture(diffuseTexture, vTexcoord0) * base_color_factor;
+                base_color.rgb = decode_srgb(base_color.rgb);
+
+                // https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#specular-brdf
+                float NdotH = dot(N, H);
+                float alpha_squared = alpha * alpha;
+                float d_denom = (NdotH * NdotH) * (alpha_squared - 1.0) + 1.0f;
+                float distribution = (alpha_squared * heaviside(NdotH)) / (PI * d_denom * d_denom);
+
+                float NdotL = dot(N, L);
+                float NdotV = dot(N, V);
+                float HdotL = dot(H, L);
+                float NdotV = dot(H, V);
+
+                float visibility = (heaviside(HdotL) / abs(NdotL) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotL * NdotL)))) * (heaviside(HdotV) / (abs(NdotV) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotV * NdotV))));
+
+                float specular_brdf = visibility * distribution;
+
+                vec3 diffuse_brdf = (1 / PI) * base_color.rgb;
+
+                vec3 conductor_fresnel = specular_brdf * (base_color.rgb + (1.0 - base_color.rgb) * pow(1.0 - abs(HdotV), 5));
+
+                float f0 = 0.04;
+                float fr = f0 + (1 - f0) * pow(1 - abs(HdotV), 5);
+                vec3 fresnel_mix = mix(diffuse_brdf, vec3(specular_brdf), fr);
+
+                vec3 material_color = mix(fresnel_mix, conductor_fresnel, metalness);
+
+                frag_color = vec4(encode_srgb(material_color), base_color.a);
+            }
+)FOO";
+
+        pipeline_creation.shaders.set_name("Cube").add_stage(vs_code, (uint32_t)strlen(vs_code), VK_SHADER_STAGE_VERTEX_BIT)
+                                                    .add_stage(fs_code, (uint32_t)strlen(fs_code), VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        // 
+
 
 
 
