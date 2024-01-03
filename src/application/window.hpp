@@ -23,29 +23,33 @@ namespace puffin {
 
     typedef void        (*OsMessagesCallback) (void* os_event, void* user_data);
 
-    struct Window: public Service {
+    struct Window : public Service {
         void            init(void* configuration) override;
         void            shutdown() override;
 
-        void            handle_os_messages();
+        void            request_os_messages();
 
         void            set_fullscreen(bool value);
 
-        void            register_os_messages_callback(OsMessagesCallback callback, void* user_data);
-        void            deregister_os_messages_callback(OsMessagesCallback callback);
+//        void            register_os_messages_callback(OsMessagesCallback callback, void* user_data);
+//        void            deregister_os_messages_callback(OsMessagesCallback callback);
 
         void            center_mouse(bool dragging);
 
         bool            has_focus();
 
+        bool            should_exit();
+
+
+
         void            set_window_user_pointer(void* user);
         void            set_key_press_callback(GLFWkeyfun callback);
 
-        Array<OsMessagesCallback>   os_messages_callbacks;
-        Array<void*>                os_messages_callbacks_data;
+//        Array<OsMessagesCallback>   os_messages_callbacks;
+//        Array<void*>                os_messages_callbacks_data;
 
         void*           platform_handle     = nullptr;
-        bool            request_exist       = false;
+        // bool            request_exist       = false;
         bool            resized             = false;
         bool            minimized           = false;
         u32             width               = 0;
@@ -53,6 +57,7 @@ namespace puffin {
         f32             display_refresh     = 1.0f / 60.0f;
 
         static constexpr cstring k_name     = "puffin_window_service";
+
     };
 
 

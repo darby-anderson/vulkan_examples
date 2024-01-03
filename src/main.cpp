@@ -24,6 +24,8 @@
 
 #include "imgui.h"
 
+#include "tracy/Tracy.hpp"
+
 #include "file_system.hpp"
 #include "gltf.hpp"
 #include "numerics.hpp"
@@ -31,6 +33,17 @@
 #include "time.hpp"
 
 #include <stdlib.h>
+
+
+// Rotating cube test
+puffin::BufferHandle                cube_vb;
+puffin::BufferHandle                cube_ib;
+puffin::PipelineHandle              cube_pipeline;
+puffin::BufferHandle                cube_cb;
+puffin::DescriptorSetHandle         cube_rl;
+puffin::DescriptorSetLayoutHandle   cube_dsl;
+
+f32 rx, ry;
 
 struct MaterialData {
     vec4s                   base_color_factor;
@@ -78,14 +91,15 @@ int main(int argc, char** argv) {
     StackAllocator scratch_allocator;
     scratch_allocator.init(puffin_mega(8));
 
-    // window
-    WindowConfiguration w_conf { 1200, 800, "Puffin Window", allocator};
-    Window window;
-    window.init(&w_conf);
-
-    InputConfiguration i_conf { &window };
+    // input service
+    InputConfiguration i_conf { };
     InputService input_handler;
     input_handler.init(&i_conf);
+
+    // window
+    WindowConfiguration w_conf { 1200, 800, "Puffin Window", allocator, &input_handler};
+    Window window;
+    window.init(&w_conf);
 
     // graphics
     DeviceCreation dc;
@@ -398,13 +412,218 @@ int main(int argc, char** argv) {
         pipeline_creation.shaders.set_name("Cube").add_stage(vs_code, (uint32_t)strlen(vs_code), VK_SHADER_STAGE_VERTEX_BIT)
                                                     .add_stage(fs_code, (uint32_t)strlen(fs_code), VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        // 
+        // Descriptor set layout
+        DescriptorSetLayoutCreation cube_rll_creation{};
+        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, "LocalConstants"});
+        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, "diffuseTexture"});
+        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1, "occlusionRoughnessMetalnessTexture"});
+        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, 1, "normalTexture"});
+        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, 1, "MaterialConstants"});
 
+        // Setting it into pipeline
+        cube_dsl = gpu.create_descriptor_set_layout(cube_rll_creation);
+        pipeline_creation.add_descriptor_set_layout(cube_dsl);
 
+        // Constant buffer
+        BufferCreation buffer_creation;
+        buffer_creation.reset().set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ResourceUsageType::Dynamic, sizeof(UniformData)).set_name("cube_cb");
+        cube_cb = gpu.create_buffer(buffer_creation);
 
+        cube_pipeline = gpu.create_pipeline(pipeline_creation);
 
+        for(u32 mesh_index = 0; mesh_index < scene.meshes_count; mesh_index++) {
+            MeshDraw mesh_draw{};
+            glTF::Mesh& mesh = scene.meshes[mesh_index];
+
+            for(u32 primitive_index = 0; primitive_index < mesh.primitives_count; primitive_index++) {
+                glTF::MeshPrimitive& mesh_primitive = mesh.primitives[primitive_index];
+
+                i32 position_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "POSITION");
+                i32 tangent_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "TANGENT");
+                i32 normal_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "NORMAL");
+                i32 texcoord_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "TEXCOORD_0");
+
+                if(position_accessor_index != -1) {
+                    glTF::Accessor& position_accessor = scene.accessors[position_accessor_index];
+                    glTF::BufferView& position_buffer_view = scene.buffer_views[position_accessor.buffer_view];
+                    BufferResource& position_buffer_gpu = buffers[position_accessor.buffer_view];
+
+                    mesh_draw.position_buffer = position_buffer_gpu.handle;
+                    mesh_draw.position_offset = position_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : position_accessor.byte_offset;
+                }
+
+                if(tangent_accessor_index != -1) {
+                    glTF::Accessor& tangent_accessor = scene.accessors[tangent_accessor_index];
+                    glTF::BufferView& tangent_buffer_view = scene.buffer_views[tangent_accessor.buffer_view];
+                    BufferResource& tangent_buffer_gpu = buffers[tangent_accessor.buffer_view];
+
+                    mesh_draw.tangent_buffer = tangent_buffer_gpu.handle;
+                    mesh_draw.tangent_offset = tangent_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : tangent_accessor.byte_offset;
+                }
+
+                if(normal_accessor_index != -1) {
+                    glTF::Accessor& normal_accessor = scene.accessors[normal_accessor_index];
+                    glTF::BufferView& normal_buffer_view = scene.buffer_views[normal_accessor.buffer_view];
+                    BufferResource& normal_buffer_gpu = buffers[normal_accessor.buffer_view];
+
+                    mesh_draw.normal_buffer = normal_buffer_gpu.handle;
+                    mesh_draw.normal_offset = normal_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : normal_accessor.byte_offset;
+                }
+
+                if(texcoord_accessor_index != -1) {
+                    glTF::Accessor& texcoord_accessor = scene.accessors[texcoord_accessor_index];
+                    glTF::BufferView& texcoord_buffer_view = scene.buffer_views[texcoord_accessor.buffer_view];
+                    BufferResource& texcoord_buffer_gpu = buffers[texcoord_accessor.buffer_view];
+
+                    mesh_draw.texcoord_buffer = texcoord_buffer_gpu.handle;
+                    mesh_draw.texcoord_offset = texcoord_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : texcoord_accessor.byte_offset;
+                }
+
+                glTF::Accessor& indices_accessor = scene.accessors[mesh_primitive.indices];
+                glTF::BufferView& indices_buffer_view = scene.buffer_views[indices_accessor.buffer_view];
+                BufferResource& indices_buffer_gpu = buffers[indices_accessor.buffer_view];
+                mesh_draw.index_buffer = indices_buffer_gpu.handle;
+                mesh_draw.index_offset = indices_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : indices_accessor.byte_offset;
+
+                glTF::Material& material = scene.materials[mesh_primitive.material];
+
+                // Descriptor set
+                DescriptorSetCreation ds_creation{};
+                ds_creation.set_layout(cube_dsl).buffer(cube_cb, 0);
+
+                if(material.pbr_metallic_roughness != nullptr) {
+                    if(material.pbr_metallic_roughness->base_color_factor_count != 0) {
+                        PASSERT(material.pbr_metallic_roughness->base_color_factor_count == 4);
+
+                        mesh_draw.material_data.base_color_factor = {
+                                material.pbr_metallic_roughness->base_color_factor[0],
+                                material.pbr_metallic_roughness->base_color_factor[1],
+                                material.pbr_metallic_roughness->base_color_factor[2],
+                                material.pbr_metallic_roughness->base_color_factor[3],
+                        };
+                    } else {
+                        mesh_draw.material_data.base_color_factor = { 1.0f, 1.0f, 1.0f, 1.0f };
+                    }
+
+                    if(material.pbr_metallic_roughness->base_color_texture != nullptr) {
+                        glTF::Texture& diffuse_texture = scene.textures[material.pbr_metallic_roughness->base_color_texture->index];
+                        TextureResource& diffuse_texture_gpu = images[diffuse_texture.source];
+                        SamplerResource& diffuse_sampler_gpu = samplers[diffuse_texture.sampler];
+
+                        ds_creation.texture_sampler(diffuse_texture_gpu.handle, diffuse_sampler_gpu.handle, 1);
+                    } else {
+                        continue;
+                    }
+
+                    if(material.pbr_metallic_roughness->metallic_roughness_texture != nullptr) {
+                        glTF::Texture& roughness_texture = scene.textures[material.pbr_metallic_roughness->metallic_roughness_texture->index];
+                        TextureResource& roughness_texture_gpu = images[roughness_texture.source];
+                        SamplerResource& roughness_sampler_gpu = samplers[roughness_texture.sampler];
+
+                        ds_creation.texture_sampler(roughness_texture_gpu.handle, roughness_sampler_gpu.handle, 2);
+                    } else if(material.occlusion_texture != nullptr) {
+                        glTF::Texture& occlusion_texture = scene.textures[material.occlusion_texture->index];
+                        TextureResource& occlusion_texture_gpu = images[occlusion_texture.source];
+                        SamplerResource& occlusion_sampler_gpu = samplers[occlusion_texture.sampler];
+
+                        ds_creation.texture_sampler(occlusion_texture_gpu.handle, occlusion_sampler_gpu.handle, 2);
+                    } else {
+                        continue;
+                    }
+
+                } else {
+                    continue;
+                }
+
+                if(material.normal_texture != nullptr) {
+                    glTF::Texture& normal_texture = scene.textures[material.normal_texture->index];
+                    TextureResource& normal_texture_gpu = images[normal_texture.source];
+                    SamplerResource& normal_sampler_gpu = samplers[normal_texture.sampler];
+
+                    ds_creation.texture_sampler(normal_texture_gpu.handle, normal_sampler_gpu.handle, 3);
+                } else {
+                    continue;
+                }
+
+                buffer_creation.reset().set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ResourceUsageType::Dynamic, sizeof(MaterialData)).set_name("material");
+                mesh_draw.material_buffer = gpu.create_buffer(buffer_creation);
+                ds_creation.buffer(mesh_draw.material_buffer, 4);
+
+                mesh_draw.count = indices_accessor.count;
+
+                mesh_draw.descriptor_set = gpu.create_descriptor_set(ds_creation);
+
+                mesh_draws.push(mesh_draw);
+            }
+
+        }
+
+        rx = 0.0f;
+        ry = 0.0f;
 
     }
+
+    i64 begin_frame_tick = time_now();
+
+    vec3s eye = vec3s { 0.0f, 2.5f, 2.0f };
+    vec3s look = vec3s { 0.0f, 0.0f, -1.0f };
+    vec3s right = vec3s { 1.0f, 0.0f, 0.0f };
+
+    f32 yaw = 0.0f;
+    f32 pitch = 0.0f;
+
+    float model_scale = 0.008f;
+
+    while(!window.should_exit()) {
+
+        ZoneScoped;
+
+        // New frame
+        if(!window.minimized) {
+            gpu.new_frame();
+        }
+
+        window.request_os_messages();
+
+        if(window.resized) {
+            gpu.resize(window.width, window.height);
+            window.resized = false;
+        }
+
+        imgui->new_frame();
+
+        const i64 current_tick = time_now();
+        f32 delta_time = (f32) time_delta_seconds(begin_frame_tick, current_tick);
+        begin_frame_tick = current_tick;
+
+        input_handler.start_new_frame();
+
+        if(ImGui::Begin("Puffin ImGui")) {
+            ImGui::InputFloat("Model scale", &model_scale, 0.001f);
+        }
+        ImGui::End();
+
+        if(ImGui::Begin("GPU")) {
+            gpu_profiler.imgui_draw();
+        }
+        ImGui::End();
+
+        {
+            // Update rotating cube data
+            MapBufferParameters cb_map = { cube_cb, 0, 0 };
+            float* cb_data = (float*)gpu.map_buffer(cb_map);
+
+            if(cb_data) {
+                if(input_handler.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)) {
+                    pitch += (input_handler.mouse_position.y - input_handler.previous_mouse_position.y) * 0.1f;
+                    yaw += (input_handler.mouse_position.x - input_handler.previous_mouse_position.x) * 0.3f;
+
+
+                }
+            }
+        }
+    }
+
 
 
 

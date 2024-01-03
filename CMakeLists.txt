@@ -58,6 +58,12 @@ target_link_libraries(${PROJECT_NAME} spirv-cross-glsl spirv-cross-cpp spirv-cro
 add_subdirectory(deps/tlsf)
 target_link_libraries(${PROJECT_NAME} tlsf)
 
+# TRACY - https://github.com/wolfpld/tracy -> documentation -> first steps -> cmake integration
+option(TRACY_ENABLE "" ON)
+option(TRACY_ON_DEMAND "" ON)
+add_subdirectory(deps/tracy-0.10)
+target_link_libraries(${PROJECT_NAME} Tracy::TracyClient)
+
 # WYHASH
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/deps/wyhash)
 

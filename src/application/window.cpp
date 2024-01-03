@@ -17,6 +17,7 @@ namespace puffin {
         return err;
     }
 
+
     void Window::init(void* configuration_) {
         p_print("Window Service \n");
 
@@ -32,6 +33,9 @@ namespace puffin {
 
         window = glfwCreateWindow(config.width, config.height, "Puffin::Vulkan", nullptr, nullptr);
 
+        // Store data for use with GLFW's callbacks
+        glfwSetWindowUserPointer(window, reinterpret_cast<void*>(this));
+
         int window_width, window_height;
         glfwGetWindowSize(window, &window_width, &window_height);
         width = (u32) window_width;
@@ -41,8 +45,12 @@ namespace puffin {
         platform_handle = window;
 
         // OS Messages
-        os_messages_callbacks.init(config.allocator, 4);
-        os_messages_callbacks_data.init(config.allocator, 4);
+//        os_messages_callbacks.init(config.allocator, 4);
+//        os_messages_callbacks_data.init(config.allocator, 4);
+
+        glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
+        glfwSetKeyCallback(window, key_pressed_callback);
+        glfwSetMouseButtonCallback(window, mouse_button_pressed_callback);
 
         GLFWmonitor* monitor = glfwGetPrimaryMonitor();
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -51,13 +59,14 @@ namespace puffin {
         }
     }
 
+
     bool Window::has_focus() {
         return glfwGetWindowAttrib(window, GLFW_FOCUSED);
     }
 
     void Window::shutdown() {
-        os_messages_callbacks_data.shutdown();
-        os_messages_callbacks.shutdown();
+//        os_messages_callbacks_data.shutdown();
+//        os_messages_callbacks.shutdown();
 
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -71,26 +80,14 @@ namespace puffin {
         }
     }
 
-    void Window::handle_os_messages() {
-        // TODO
+    void Window::request_os_messages() {
+        glfwPollEvents();
     }
 
-    void Window::register_os_messages_callback(OsMessagesCallback callback, void* user_data) {
-        os_messages_callbacks.push(callback);
-        os_messages_callbacks_data.push(user_data);
+    bool Window::should_exit() {
+        return glfwWindowShouldClose(window);
     }
 
-    void Window::deregister_os_messages_callback(OsMessagesCallback callback) {
-        PASSERTM(os_messages_callbacks.size < 8, "This array is too big for a linear search.");
-
-        for(u32 i = 0; i < os_messages_callbacks.size; i++) {
-            if(os_messages_callbacks[i] == callback) {
-                os_messages_callbacks.delete_swap(i);
-                os_messages_callbacks_data.delete_swap(i);
-            }
-        }
-
-    }
 
     void Window::center_mouse(bool dragging) {
         // TODO - CENTER MOUSE WITH GLFW
@@ -103,5 +100,24 @@ namespace puffin {
     void Window::set_key_press_callback(GLFWkeyfun callback) {
         glfwSetKeyCallback(window, callback);
     }
+
+//    void Window::register_os_messages_callback(OsMessagesCallback callback, void* user_data) {
+//        os_messages_callbacks.push(callback);
+//        os_messages_callbacks_data.push(user_data);
+//    }
+//
+//    void Window::deregister_os_messages_callback(OsMessagesCallback callback) {
+//        PASSERTM(os_messages_callbacks.size < 8, "This array is too big for a linear search.");
+//
+//        for(u32 i = 0; i < os_messages_callbacks.size; i++) {
+//            if(os_messages_callbacks[i] == callback) {
+//                os_messages_callbacks.delete_swap(i);
+//                os_messages_callbacks_data.delete_swap(i);
+//            }
+//        }
+//
+//    }
+
+
 
 }
