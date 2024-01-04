@@ -618,8 +618,25 @@ int main(int argc, char** argv) {
                     pitch += (input_handler.mouse_position.y - input_handler.previous_mouse_position.y) * 0.1f;
                     yaw += (input_handler.mouse_position.x - input_handler.previous_mouse_position.x) * 0.3f;
 
+                    pitch = clamp(pitch, -60.0f, 60.0f);
 
+                    if(yaw > 360.0f) {
+                        yaw -= 360.0f;
+                    }
+
+                    mat3s rxm = glms_mat4_pick3( glms_rotate_make(glm_rad(-pitch), vec3s {1.0f, 0.0f, 0.0f }));
+                    mat3s rym = glms_mat4_pick3(glms_rotate_make(glm_rad(yaw), vec3s {0.0f, 1.0f, 0.0f}));
+
+                    look = glms_mat3_mulv(rxm, vec3s{0.0f, 0.0f, -1.0f});
+                    look = glms_mat3_mulv(rym, look);
+
+                    right = glms_cross(look, vec3s {0.0f, 1.0f, 0.0f});
                 }
+
+                if(input_handler.is_key_down(Key::KEY_W)) {
+                    eye = glms_vec3_add(eye, )
+                }
+
             }
         }
     }
