@@ -634,8 +634,21 @@ int main(int argc, char** argv) {
                 }
 
                 if(input_handler.is_key_down(Key::KEY_W)) {
-                    eye = glms_vec3_add(eye, )
+                    eye = glms_vec3_add(eye, glms_vec3_scale(look, 5.0f * delta_time));
+                } else if(input_handler.is_key_down(Key::KEY_S)){
+                    eye = glms_vec3_sub(eye, glms_vec3_scale(look, 5.0f * delta_time));
                 }
+
+                if(input_handler.is_key_down(Key::KEY_D)) {
+                    eye = glms_vec3_add(eye, glms_vec3_scale(right, 5.0f * delta_time));
+                } else if(input_handler.is_key_down(Key::KEY_A)){
+                    eye = glms_vec3_sub(eye, glms_vec3_scale(look, 5.0f * delta_time));
+                }
+
+                mat4s view = glms_lookat(eye, glms_vec3_add(eye, look), vec3s{0.0f, 1.0f, 0.0f});
+                mat4s projection = glms_perspective(glm_rad(60.0f), gpu.swapchain_width * 1.0f / gpu.swapchain_height, 0.01f, 1000.0f);
+
+
 
             }
         }
