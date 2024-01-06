@@ -34,3 +34,4 @@ add_library(
 target_link_libraries(base tlsf)
 
 target_include_directories(base PUBLIC ../../deps/wyhash)
+target_include_directories(base PUBLIC ../../deps/json/single_include/nlohmann)

@@ -315,6 +315,8 @@ i32                 get_data_offset(i32 accessor_offset, i32 buffer_view_offset)
 
 glTF::glTF          gltf_load_file(cstring file_path);
 
+void                gltf_free( glTF::glTF& scene );
+
 i32                 gltf_get_attribute_accessor_index(glTF::MeshPrimitive::Attribute* attributes, u32 attributes_count, cstring attribute_name);
 
 } // puffin

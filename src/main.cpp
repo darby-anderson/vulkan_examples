@@ -648,33 +648,111 @@ int main(int argc, char** argv) {
                 mat4s view = glms_lookat(eye, glms_vec3_add(eye, look), vec3s{0.0f, 1.0f, 0.0f});
                 mat4s projection = glms_perspective(glm_rad(60.0f), gpu.swapchain_width * 1.0f / gpu.swapchain_height, 0.01f, 1000.0f);
 
+                // Calculate view projection matrix
+                mat4s view_projection = glms_mat4_mul(projection, view);
 
+                // Rotate cube
+                rx += 1.0f * delta_time;
+                ry += 2.0f * delta_time;
 
+                mat4s rxm = glms_rotate_make(rx, vec3s{1.0f, 0.0f, 0.0f});
+                mat4s rym = glms_rotate_make(glm_rad(45.0f), vec3s{0.0f, 1.0f, 0.0f});
+
+                mat4s sm = glms_scale_make(vec3s{model_scale, model_scale, model_scale});
+                mat4s model = glms_mat4_mul(rym, sm);
+
+                UniformData uniform_data{};
+                uniform_data.vp = view_projection, model;
+                uniform_data.m = model;
+                uniform_data.inverseM = glms_mat4_inv(glms_mat4_transpose(model));
+                uniform_data.eye = vec4s {eye.x, eye.y, eye.z, 1.0f};
+                uniform_data.light = vec4s {2.0f, 2.0f, 0.0f, 1.0f};
+
+                memcpy(cb_data, &uniform_data, sizeof(UniformData));
+
+                gpu.unmap_buffer(cb_map);
             }
         }
+
+        if(!window.minimized) {
+            puffin::CommandBuffer* gpu_commands = gpu.get_command_buffer(QueueType::Graphics, true);
+            gpu_commands->push_marker("Frame");
+
+            gpu_commands->clear(0.3f, 0.9f, 0.3f, 1.0f);
+            gpu_commands->clear_depth_stencil(1.0f, 0);
+            gpu_commands->bind_pass(gpu.get_swapchain_pass());
+            gpu_commands->bind_pipeline(cube_pipeline);
+            gpu_commands->set_scissors(nullptr);
+            gpu_commands->set_viewport(nullptr);
+
+            for(u32 mesh_index = 0; mesh_index < mesh_draws.size; mesh_index++) {
+                MeshDraw mesh_draw = mesh_draws[mesh_index];
+
+                MapBufferParameters material_map = { mesh_draw.material_buffer, 0, 0 };
+                MaterialData* material_buffer_data = (MaterialData*) gpu.map_buffer(material_map);
+
+                memcpy(material_buffer_data, &mesh_draw.material_data, sizeof(MaterialData));
+
+                gpu.unmap_buffer(material_map);
+
+                gpu_commands->bind_vertex_buffer(mesh_draw.position_buffer, 0, mesh_draw.position_offset);
+                gpu_commands->bind_vertex_buffer(mesh_draw.tangent_buffer, 1, mesh_draw.tangent_offset);
+                gpu_commands->bind_vertex_buffer(mesh_draw.normal_buffer, 2, mesh_draw.normal_offset);
+                gpu_commands->bind_vertex_buffer(mesh_draw.texcoord_buffer, 3, mesh_draw.texcoord_offset);
+                gpu_commands->bind_index_buffer(mesh_draw.index_buffer, mesh_draw.index_offset);
+                gpu_commands->bind_descriptor_set(&mesh_draw.descriptor_set, 1, nullptr, 0);
+
+                gpu_commands->draw_indexed(TopologyType::Triangle, mesh_draw.count, 1, 0, 0, 0);
+            }
+
+            imgui->render(*gpu_commands);
+
+            gpu_commands->pop_marker();
+
+            gpu_profiler.update(gpu);
+
+            // Send commands to GPU
+            gpu.queue_command_buffer(gpu_commands);
+            gpu.present();
+        } else {
+            ImGui::Render();
+        }
+
+        FrameMark;
     }
 
+    for(u32 mesh_index = 0; mesh_index < mesh_draws.size; mesh_index++) {
+        MeshDraw& mesh_draw = mesh_draws[mesh_index];
+        gpu.destroy_descriptor_set(mesh_draw.descriptor_set);
+        gpu.destroy_buffer(mesh_draw.material_buffer);
+    }
 
+    mesh_draws.shutdown();
 
+    gpu.destroy_buffer(cube_cb);
+    gpu.destroy_pipeline(cube_pipeline);
+    gpu.destroy_descriptor_set_layout(cube_dsl);
 
+    imgui->shutdown();
 
+    gpu_profiler.shutdown();
 
+    rm.shutdown();
+    renderer.shutdown();
 
+    samplers.shutdown();
+    images.shutdown();
+    buffers.shutdown();
 
+    resource_name_buffer.shutdown();
 
+    gltf_free(scene);
 
+    input_handler.shutdown();
+    window.shutdown();
 
+    MemoryService::instance()->shutdown();
 
-
-
-
-
-
-
-
-
-
-
-
+    return 0;
 
 }
