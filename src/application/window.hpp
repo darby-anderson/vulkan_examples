@@ -44,6 +44,9 @@ namespace puffin {
 
         void            set_window_user_pointer(void* user);
         void            set_key_press_callback(GLFWkeyfun callback);
+        void            set_mouse_button_press_callback(GLFWmousebuttonfun callback);
+        void            set_framebuffer_resize_callback(GLFWframebuffersizefun callback);
+
 
 //        Array<OsMessagesCallback>   os_messages_callbacks;
 //        Array<void*>                os_messages_callbacks_data;

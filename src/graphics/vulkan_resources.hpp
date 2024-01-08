@@ -879,20 +879,22 @@ static VkPipelineStageFlags util_determine_pipeline_stage(VkAccessFlags access_f
         case QueueType::CopyTransfer: {
             return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
         }
-
-            // Compatible with both compute and graphisc queues
-            if ((access_flags & (VK_ACCESS_INDIRECT_COMMAND_READ_BIT)) != 0) {
-                flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
-            }
-            if ((access_flags & (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0) {
-                flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
-            }
-            if (flags == 0) {
-                flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-            }
-
-            return flags;
+        default:
+            break;
     }
+
+    // Compatible with both compute and graphics queues
+    if ((access_flags & (VK_ACCESS_INDIRECT_COMMAND_READ_BIT)) != 0) {
+        flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+    }
+    if ((access_flags & (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0) {
+        flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    if (flags == 0) {
+        flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    }
+
+    return flags;
 }
 
 static cstring to_stage_defines(VkShaderStageFlagBits value) {

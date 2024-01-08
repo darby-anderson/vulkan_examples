@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
     input_handler.init(&i_conf);
 
     // window
-    WindowConfiguration w_conf { 1200, 800, "Puffin Window", allocator, &input_handler};
+    WindowConfiguration w_conf { 1200, 800, "Puffin Window", allocator };
     Window window;
     window.init(&w_conf);
 

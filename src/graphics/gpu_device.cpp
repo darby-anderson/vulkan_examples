@@ -2884,7 +2884,7 @@ void* GpuDevice::map_buffer(const MapBufferParameters& parameters) {
     Buffer* buffer = access_buffer(parameters.buffer);
 
     if(buffer->parent_buffer.index == dynamic_buffer.index) {
-        buffer->global_offset == dynamic_allocated_size;
+        buffer->global_offset = dynamic_allocated_size;
         return dynamic_allocate(parameters.size == 0 ? buffer->size : parameters.size);
     }
 

@@ -202,7 +202,7 @@ namespace TopologyType {
 }
 
 enum DeviceExtensions {
-    DeviceExtensions_DebugCallback                      = 1 << 0;
+    DeviceExtensions_DebugCallback                      = 1 << 0
 };
 
 namespace TextureFlags {

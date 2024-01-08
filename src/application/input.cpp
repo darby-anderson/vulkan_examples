@@ -45,10 +45,11 @@ namespace puffin {
 
     void InputService::init(InputConfiguration* config) {
         window = config->window;
-//
-//        window->set_window_user_pointer(reinterpret_cast<void*>(this));
-//        window->set_key_press_callback(key_callback);
 
+        window->set_window_user_pointer(reinterpret_cast<void*>(this));
+        window->set_key_press_callback(key_pressed_callback);
+        window->set_mouse_button_press_callback(mouse_button_pressed_callback);
+        window->set_framebuffer_resize_callback(framebuffer_resize_callback);
 
         memset(keys, 0, KEY_COUNT);
         memset(first_frame_keys, 0, KEY_COUNT);

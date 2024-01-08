@@ -270,7 +270,7 @@ namespace puffin {
     // at which we should grow the capacity.
     // if (Group::kWidth == 8 && capacity == 7) { return 6; }
     // x-x/8 does not work when x==7
-    static u64          next_grow_capacity(u64 capacity); // renamed from next_grow_capacity
+    static u64          capacity_to_growth(u64 capacity);
     static u64          capacity_growth_to_lower_bound(u64 growth);
 
     static void ConvertDeletedToEmptyAndFullToDeleted(i8* ctrl, size_t capacity) {
@@ -292,7 +292,7 @@ namespace puffin {
 
     template <typename K, typename V>
     void FlatHashMap<K, V>::reset_growth_remaining() {
-        growth_remaining = next_grow_capacity(capacity) - size;
+        growth_remaining = capacity_to_growth(capacity) - size;
     }
 
     template <typename K, typename V>
@@ -455,7 +455,7 @@ namespace puffin {
     void FlatHashMap<K, V>::rehash_and_grow_if_necessary() {
         if(capacity == 0) {
             resize(1);
-        } else if(size <= next_grow_capacity(capacity) / 2) {
+        } else if(size <= capacity_to_growth(capacity) / 2) {
             // Squash DELETED without growing if there is enough capacity.
             drop_deletes_without_resize();
         } else {
@@ -682,6 +682,8 @@ namespace puffin {
     u64 capacity_normalize ( u64 n )        { return n ? ~u64{} >> lzcnt_soft(n) : 1; }
 
     u64 capacity_to_growth (u64 capacity)   { return capacity - capacity / 8; }
+
+
 
     u64 capacity_growth_to_lower_bound(u64 growth) {
         return growth + static_cast<u64>((static_cast<i64>(growth) - 1) / 7);

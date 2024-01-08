@@ -48,9 +48,9 @@ namespace puffin {
 //        os_messages_callbacks.init(config.allocator, 4);
 //        os_messages_callbacks_data.init(config.allocator, 4);
 
-        glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
-        glfwSetKeyCallback(window, key_pressed_callback);
-        glfwSetMouseButtonCallback(window, mouse_button_pressed_callback);
+//        glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
+//        glfwSetKeyCallback(window, key_pressed_callback);
+//        glfwSetMouseButtonCallback(window, mouse_button_pressed_callback);
 
         GLFWmonitor* monitor = glfwGetPrimaryMonitor();
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -99,6 +99,14 @@ namespace puffin {
 
     void Window::set_key_press_callback(GLFWkeyfun callback) {
         glfwSetKeyCallback(window, callback);
+    }
+
+    void Window::set_mouse_button_press_callback(GLFWmousebuttonfun callback) {
+        glfwSetMouseButtonCallback(window, callback);
+    }
+
+    void Window::set_framebuffer_resize_callback(GLFWframebuffersizefun callback) {
+        glfwSetFramebufferSizeCallback(window, callback);
     }
 
 //    void Window::register_os_messages_callback(OsMessagesCallback callback, void* user_data) {
