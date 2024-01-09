@@ -79,15 +79,18 @@ target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
 
 # BASE
 add_subdirectory(src/base)
-target_link_libraries(${PROJECT_NAME} src/base)
+# target_link_libraries(${PROJECT_NAME} src/base)
+target_link_libraries(${PROJECT_NAME} base)
 target_include_directories(${PROJECT_NAME} PUBLIC "src/base")
 
 # GRAPHICS
 add_subdirectory(src/graphics)
-target_link_libraries(${PROJECT_NAME} src/graphics)
+# target_link_libraries(${PROJECT_NAME} src/graphics)
+target_link_libraries(${PROJECT_NAME} graphics)
 target_include_directories(${PROJECT_NAME} PUBLIC "src/graphics")
 
 # APPLICATION
 add_subdirectory(src/application)
-target_link_libraries(${PROJECT_NAME} src/application)
+# target_link_libraries(${PROJECT_NAME} src/application)
+target_link_libraries(${PROJECT_NAME} application)
 target_include_directories(${PROJECT_NAME} PUBLIC "src/application")

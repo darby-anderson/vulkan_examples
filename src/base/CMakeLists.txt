@@ -1,4 +1,6 @@
 
+# set(LIBRARY_OUTPUT_DIRECTORY)
+
 add_library(
 	base
 	"file_system.hpp"
@@ -7,6 +9,7 @@ add_library(
 	"memory.cpp"
 	"platform.hpp"
 	"service.hpp"
+	"service.cpp"
 	"array.hpp"
     "assert.hpp"
 	"log.hpp"

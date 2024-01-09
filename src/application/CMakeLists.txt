@@ -16,8 +16,10 @@ target_link_libraries(
         application
         PRIVATE
         base
+        graphics
         glm::glm
         glfw
 )
 
 target_include_directories(application PUBLIC ../base)
+target_include_directories(application PUBLIC ../graphics)
