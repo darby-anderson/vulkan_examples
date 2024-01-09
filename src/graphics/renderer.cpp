@@ -229,6 +229,163 @@ SamplerResource* Renderer::create_sampler(const SamplerCreation& creation) {
     return nullptr;
 }
 
+void Renderer::destroy_buffer(BufferResource* buffer) {
+    if(!buffer) {
+        return;
+    }
+
+    buffer->remove_reference();
+    if(buffer->references) {
+        return;
+    }
+
+    resource_cache.buffers.remove(hash_calculate(buffer->desc.name));
+    gpu->destroy_buffer(buffer->handle);
+    buffers.release(buffer);
+}
+
+void Renderer::destroy_texture(TextureResource* texture) {
+    if(!texture) {
+        return;
+    }
+
+    texture->remove_reference();
+    if(texture->references) {
+        return;
+    }
+
+    resource_cache.textures.remove(hash_calculate(texture->desc.name));
+    gpu->destroy_texture(texture->handle);
+    textures.release(texture);
+}
+
+void Renderer::destroy_sampler(SamplerResource* sampler) {
+    if(!sampler) {
+        return;
+    }
+
+    sampler->remove_reference();
+    if(sampler->references) {
+        return;
+    }
+
+    resource_cache.samplers.remove(hash_calculate(sampler->desc.name));
+    gpu->destroy_sampler(sampler->handle);
+    samplers.release(sampler);
+}
+
+void* Renderer::map_buffer(BufferResource* buffer, u32 offset, u32 size) {
+    MapBufferParameters cb_map = {buffer->handle, offset, size };
+    return gpu->map_buffer(cb_map);
+}
+
+void Renderer::unmap_buffer(BufferResource* buffer) {
+    if(buffer->desc.parent_handle.index == k_invalid_index) {
+        MapBufferParameters cb_map = {buffer->handle, 0, 0};
+        gpu->unmap_buffer(cb_map);
+    }
+}
+
+// Resource Loaders ///////
+// Texture Loader //////
+Resource* TextureLoader::get(cstring name) {
+    const u64 hashed_name = hash_calculate(name);
+    return renderer->resource_cache.textures.get(hashed_name);
+}
+
+Resource* TextureLoader::get(u64 hashed_name) {
+    return renderer->resource_cache.textures.get(hashed_name);
+}
+
+Resource* TextureLoader::unload(cstring name) {
+    const u64 hashed_name = hash_calculate(name);
+    TextureResource* texture = renderer->resource_cache.textures.get(hashed_name);
+    if(texture) {
+        renderer->destroy_texture(texture);
+    }
+    return nullptr;
+}
+
+Resource* TextureLoader::create_from_file(cstring name, cstring filename, ResourceManager* resource_manager) {
+    return renderer->create_texture(name, filename);
+}
+
+// Buffer Loader /////
+Resource* BufferLoader::get(cstring name) {
+    const u64 hashed_name = hash_calculate(name);
+    return renderer->resource_cache.buffers.get(hashed_name);
+}
+
+Resource* BufferLoader::get(u64 hashed_name) {
+    return renderer->resource_cache.buffers.get(hashed_name);
+}
+
+Resource* BufferLoader::unload(cstring name) {
+    const u64 hashed_name = hash_calculate(name);
+    BufferResource* buffer = renderer->resource_cache.buffers.get(hashed_name);
+    if(buffer) {
+        renderer->destroy_buffer(buffer);
+    }
+    return nullptr;
+}
+
+// Sampler Loader ////////////
+Resource* SamplerLoader::get(cstring name) {
+    const u64 hashed_name = hash_calculate(name);
+    return renderer->resource_cache.samplers.get(hashed_name);
+}
+
+Resource* SamplerLoader::get(u64 hashed_name) {
+    return renderer->resource_cache.samplers.get(hashed_name);
+}
+
+Resource* SamplerLoader::unload(cstring name) {
+    const u64 hashed_name = hash_calculate(name);
+    SamplerResource* sampler = renderer->resource_cache.samplers.get(hashed_name);
+    if(sampler) {
+        renderer->destroy_sampler(sampler);
+    }
+    return nullptr;
+}
+
+// Resource Cache
+
+void ResourceCache::init(Allocator* allocator) {
+    // Init resources caching
+    textures.init(allocator, 16);
+    buffers.init(allocator, 16);
+    samplers.init(allocator, 16);
+}
+
+void ResourceCache::shutdown(puffin::Renderer* renderer) {
+    FlatHashMapIterator it = textures.iterator_begin();
+    while(it.is_valid()) {
+        TextureResource* texture = textures.get(it);
+        renderer->destroy_texture(texture);
+
+        textures.iterator_advance(it);
+    }
+
+    it = buffers.iterator_begin();
+    while(it.is_valid()) {
+        BufferResource* buffer = buffers.get(it);
+        renderer->destroy_buffer(buffer);
+
+        buffers.iterator_advance(it);
+    }
+
+    it = samplers.iterator_begin();
+    while(it.is_valid()) {
+        SamplerResource* sampler = samplers.get(it);
+        renderer->destroy_sampler(sampler);
+
+        samplers.iterator_advance(it);
+    }
+
+    textures.shutdown();
+    buffers.shutdown();
+    samplers.shutdown();
+}
 
 
 }

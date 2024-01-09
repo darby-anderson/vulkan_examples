@@ -2947,6 +2947,7 @@ void GpuDevice::pop_gpu_timestamp(puffin::CommandBuffer* command_buffer) {
 }
 
 
+
 // Utility methods ///////////////////////////
 
 void check_result(VkResult result) {
@@ -3035,6 +3036,14 @@ DescriptorSetLayout* GpuDevice::access_descriptor_set_layout(puffin::DescriptorS
 
 const DescriptorSetLayout* GpuDevice::access_descriptor_set_layout(puffin::DescriptorSetLayoutHandle layout) const {
     return (const DescriptorSetLayout*) descriptor_set_layouts.access_resource(layout.index);
+}
+
+DescriptorSet* GpuDevice::access_descriptor_set(DescriptorSetHandle set) {
+    return (DescriptorSet*) descriptor_sets.access_resource(set.index);
+}
+
+const DescriptorSet* GpuDevice::access_descriptor_set(DescriptorSetHandle set) const {
+    return (const DescriptorSet*) descriptor_sets.access_resource(set.index);
 }
 
 RenderPass* GpuDevice::access_render_pass(RenderPassHandle render_pass) {

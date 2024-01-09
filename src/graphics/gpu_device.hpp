@@ -279,7 +279,7 @@ namespace puffin {
 
         TextureHandle           depth_texture;
 
-        static const uint32_t   k_max_frames;
+        static const uint32_t   k_max_frames            = 3;
 
         // Windows specific
         VkSurfaceKHR            vulkan_window_surface;
