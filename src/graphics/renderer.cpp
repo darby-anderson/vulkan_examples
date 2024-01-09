@@ -121,6 +121,12 @@ void Renderer::shutdown() {
     gpu->shutdown();
 }
 
+void Renderer::set_loaders(ResourceManager* manager) {
+    manager->set_loader(TextureResource::k_type, &s_texture_loader);
+    manager->set_loader(BufferResource::k_type, &s_buffer_loader);
+    manager->set_loader(SamplerResource::k_type, &s_sampler_loader);
+}
+
 void Renderer::begin_frame() {
     gpu->new_frame();
 }
@@ -200,6 +206,27 @@ TextureResource* Renderer::create_texture(cstring name, cstring filename) {
 
     resource_cache.textures.insert(hash_calculate(name), texture);
     return texture;
+}
+
+SamplerResource* Renderer::create_sampler(const SamplerCreation& creation) {
+    SamplerResource* sampler = samplers.obtain();
+
+    if(sampler) {
+        SamplerHandle handle = gpu->create_sampler(creation);
+        sampler->handle = handle;
+        sampler->name = creation.name;
+        gpu->query_sampler(handle, sampler->desc);
+
+        if(creation.name != nullptr) {
+            resource_cache.samplers.insert(hash_calculate(creation.name), sampler);
+        }
+
+        sampler->references = 1;
+
+        return sampler;
+    }
+
+    return nullptr;
 }
 
 

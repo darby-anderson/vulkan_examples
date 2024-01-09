@@ -24,6 +24,7 @@ add_library(
 	"process.hpp"
 	"process.cpp"
 	"resource_manager.hpp"
+	"resource_manager.cpp"
 	"numerics.hpp"
 	"numerics.cpp"
 	"color.hpp"
