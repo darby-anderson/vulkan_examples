@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <iostream>
 
 namespace puffin {
 
@@ -13,7 +14,8 @@ namespace puffin {
     static char             log_buffer[ k_string_buffer_size ];
 
     static void output_console(char* log_buffer_){
-        printf("%s", log_buffer_);
+        // printf("%s\n", log_buffer_);
+        std::cout << log_buffer_ << std::endl;
     }
 
     LogService* LogService::instance() {

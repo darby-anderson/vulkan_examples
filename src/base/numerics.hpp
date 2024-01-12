@@ -69,7 +69,5 @@ f32 get_random_value( f32 min, f32 max );
 const f32 puf_pi = 3.1415926538f;
 const f32 puf_pi_2 = 1.57079632679f;
 
-
-
 }
 

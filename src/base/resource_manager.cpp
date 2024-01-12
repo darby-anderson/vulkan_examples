@@ -7,7 +7,7 @@
 namespace puffin {
 
 void ResourceManager::init(Allocator* allocator_, ResourceFilenameResolver* resolver) {
-    this->allocator = allocator;
+    this->allocator = allocator_;
     this->filename_resolver = resolver;
 
     loaders.init(allocator, 8);

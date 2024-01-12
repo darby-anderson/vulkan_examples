@@ -56,7 +56,7 @@ namespace puffin {
             return false;
         }
 
-        // Create startup informations with std redirection
+        // Create startup information with std redirection
         STARTUPINFOA startup_info = {};
         startup_info.cb = sizeof(startup_info);
         startup_info.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
@@ -85,7 +85,7 @@ namespace puffin {
         }
 
         CloseHandle(handle_stdin_pipe_read);
-        CloseHandle(handle_stdin_pipe_write);
+        CloseHandle(handle_std_pipe_write);
 
         // Output
         DWORD bytes_read;

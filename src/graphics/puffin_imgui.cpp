@@ -32,7 +32,7 @@ puffin::FlatHashMap<puffin::ResourceHandle, puffin::ResourceHandle> g_texture_to
 
 static const char* g_vertex_shader_code = {
         "#version 450\n"
-        "layout( location = 0 ) in vec3 Position;\n"
+        "layout( location = 0 ) in vec2 Position;\n"
         "layout( location = 1 ) in vec2 UV;\n"
         "layout( location = 2 ) in uvec4 Color;\n"
         "layout( location = 0 ) out vec2 Frag_UV;\n"

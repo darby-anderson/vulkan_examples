@@ -586,6 +586,7 @@ void GpuDevice::init(const DeviceCreation& creation) {
             ResourceUsageType::Immutable,
             dynamic_per_frame_size * k_max_frames)
             .set_name("Dynamic_Persistent_Buffer");
+    dynamic_buffer = create_buffer(bc);
 
     MapBufferParameters cb_map = {dynamic_buffer, 0, 0};
     dynamic_mapped_memory = (u8*)map_buffer(cb_map);

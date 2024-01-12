@@ -91,15 +91,15 @@ int main(int argc, char** argv) {
     StackAllocator scratch_allocator;
     scratch_allocator.init(puffin_mega(8));
 
-    // input service
-    InputConfiguration i_conf { };
-    InputService input_handler;
-    input_handler.init(&i_conf);
-
     // window
     WindowConfiguration w_conf { 1200, 800, "Puffin Window", allocator };
     Window window;
     window.init(&w_conf);
+
+    // input service
+    InputConfiguration i_conf { &window };
+    InputService input_handler;
+    input_handler.init(&i_conf);
 
     // graphics
     DeviceCreation dc;
