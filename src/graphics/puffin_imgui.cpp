@@ -37,7 +37,7 @@ static const char* g_vertex_shader_code = {
         "layout( location = 2 ) in uvec4 Color;\n"
         "layout( location = 0 ) out vec2 Frag_UV;\n"
         "layout( location = 1 ) out vec4 Frag_Color;\n"
-        "layout( std140, binding = 0 ) out uniform LocalConstants { mat4 ProjMtx; };\n"
+        "layout( std140, binding = 0 ) uniform LocalConstants { mat4 ProjMtx; };\n"
         "void main()\n"
         "{\n"
         "   Frag_UV = UV;\n"
@@ -54,7 +54,7 @@ static const char* g_vertex_shader_code_bindless = {
         "layout( location = 0 ) out vec2 Frag_UV;\n"
         "layout( location = 1 ) out vec4 Frag_Color;\n"
         "layout( location = 2 ) flat out uint texture_id;\n"
-        "layout( std140, binding = 0 ) out uniform LocalConstants { mat4 ProjMtx; };\n"
+        "layout( std140, binding = 0 ) uniform LocalConstants { mat4 ProjMtx; };\n"
         "void main()\n"
         "{\n"
         "   Frag_UV = UV;\n"
@@ -66,7 +66,7 @@ static const char* g_vertex_shader_code_bindless = {
 
 static const char* g_fragment_shader_code = {
         "#version 450\n"
-        "#extension GL_EXT_nonuniform_qualifer : enable\n"
+        "#extension GL_EXT_nonuniform_qualifier : enable\n"
         "layout (location = 0) in vec2 Frag_UV;\n"
         "layout (location = 1) in vec4 Frag_Color;\n"
         "layout (location = 0) out vec4 Out_Color;\n"
@@ -79,7 +79,7 @@ static const char* g_fragment_shader_code = {
 
 static const char* g_fragment_shader_code_bindless = {
         "#version 450\n"
-        "#extension GL_EXT_nonuniform_qualifer : enable\n"
+        "#extension GL_EXT_nonuniform_qualifier : enable\n"
         "layout (location = 0) in vec2 Frag_UV;\n"
         "layout (location = 1) in vec4 Frag_Color;\n"
         "layout (location = 2) flat in uint texture_id;\n"

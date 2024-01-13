@@ -53,7 +53,7 @@ namespace puffin {
 
 static void check_result(VkResult result);
 
-#define                 check(result) PASSERTM(result == VK_SUCCESS, "Vulka asser code %u", result)
+#define                 check(result) PASSERTM(result == VK_SUCCESS, "Vulkan assert code %u", result)
 
 struct CommandBufferRing {
 
@@ -450,6 +450,7 @@ void GpuDevice::init(const DeviceCreation& creation) {
     pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     pool_info.maxSets = k_global_pool_elements * PuffinArraySize(pool_sizes);
+    pool_info.poolSizeCount = (u32) PuffinArraySize(pool_sizes);
     pool_info.pPoolSizes = pool_sizes;
     result = vkCreateDescriptorPool(vulkan_device, &pool_info, vulkan_allocation_callbacks, &vulkan_descriptor_pool);
     check(result);
@@ -747,7 +748,7 @@ static void transition_image_layout(VkCommandBuffer command_buffer, VkImage imag
         barrier.srcAccessMask = 0;
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     } else if(oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -756,7 +757,7 @@ static void transition_image_layout(VkCommandBuffer command_buffer, VkImage imag
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     } else {
-        p_print("Unsupported layout transition");
+        // p_print("Unsupported layout transition");
     }
 
     vkCmdPipelineBarrier(command_buffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
