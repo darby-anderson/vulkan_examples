@@ -80,6 +80,11 @@ struct UniformData {
 
 int main(int argc, char** argv) {
 
+    if(argc < 2) {
+        printf("Usage: project [path to gltf model]");
+        InjectDefault3DModel();
+    }
+
     // Init services
 
     using namespace puffin;
@@ -165,7 +170,7 @@ int main(int argc, char** argv) {
         creation.name = sampler_name;
 
         SamplerResource* sr = renderer.create_sampler(creation);
-        PASSERT(sr == nullptr);
+        PASSERT(sr != nullptr);
 
         samplers.push(*sr);
     }
@@ -389,9 +394,9 @@ int main(int argc, char** argv) {
                 float NdotL = dot(N, L);
                 float NdotV = dot(N, V);
                 float HdotL = dot(H, L);
-                float NdotV = dot(H, V);
+                float HdotV = dot(H, V);
 
-                float visibility = (heaviside(HdotL) / abs(NdotL) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotL * NdotL)))) * (heaviside(HdotV) / (abs(NdotV) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotV * NdotV))));
+                float visibility = (heaviside(HdotL) / (abs(NdotL) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotL * NdotL)))) * (heaviside(HdotV) / (abs(NdotV) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotV * NdotV))));
 
                 float specular_brdf = visibility * distribution;
 

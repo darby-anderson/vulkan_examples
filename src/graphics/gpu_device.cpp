@@ -214,7 +214,7 @@ void GpuDevice::init(const DeviceCreation& creation) {
             nullptr,
             "Puffin Graphics Device", 1,
             "Puffin", 1,
-            VK_MAKE_VERSION(0, 0, 1)
+            VK_MAKE_VERSION(1, 2, 0)
     };
 
     VkInstanceCreateInfo create_info = {
@@ -1385,7 +1385,7 @@ BufferHandle GpuDevice::create_buffer(const BufferCreation& creation) {
     VkBufferCreateInfo buffer_info = {
             VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO
     };
-    buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | creation.usage;
+    buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | creation.type_flags;
     buffer_info.size = creation.size > 0 ? creation.size : 1; // 0 is not permitted
 
     VmaAllocationCreateInfo memory_info{};
@@ -1571,7 +1571,6 @@ static void vulkan_fill_write_descriptor_sets(GpuDevice& gpu_device, const Descr
                 // Bind the parent buffer if present, it is used with dynamic resources
                 if(buffer->parent_buffer.index != k_invalid_index) {
                     Buffer* parent_buffer = gpu_device.access_buffer(buffer->parent_buffer);
-
                     buffer_info[i].buffer = parent_buffer->vk_buffer;
                 } else {
                     buffer_info[i].buffer = buffer->vk_buffer;

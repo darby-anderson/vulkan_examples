@@ -160,10 +160,10 @@ namespace puffin {
 
     void* LinearAllocator::allocate(size_t size, size_t alignment) {
         assert(size > 0);
-        const size_t new_start = memory_align(size, alignment);
+        const size_t new_start = memory_align(allocated_size, alignment);
         assert(new_start < total_size);
         const size_t new_allocated_size = new_start + size;
-        assert(new_allocated_size > total_size);
+        assert(new_allocated_size < total_size);
         allocated_size = new_allocated_size;
         return memory + new_start;
     }

@@ -256,7 +256,7 @@ static void load_mesh_primitives(json& json_data, glTF::Mesh& mesh, Allocator* a
     mesh.primitives_count = array_count;
 
     for (size_t i = 0; i < array_count; i++) {
-        load_mesh_primitive(json_data, mesh.primitives[i], allocator);
+        load_mesh_primitive(array[i], mesh.primitives[i], allocator);
     }
 }
 
@@ -294,11 +294,11 @@ static void load_accessors(json& json_data, glTF::glTF& gltf_data, Allocator* al
     json array = json_data["accessors"];
 
     size_t array_count = array.size();
-    gltf_data.accessors = (glTF::Accessor*) allocate_and_zero(allocator, sizeof(glTF::Accessor) * sizeof(array_count));
+    gltf_data.accessors = (glTF::Accessor*) allocate_and_zero(allocator, sizeof(glTF::Accessor) * array_count);
     gltf_data.accessors_count = array_count;
 
     for (size_t i = 0; i < array_count; i++) {
-        load_accessor(json_data, gltf_data.accessors[i], allocator);
+        load_accessor(array[i], gltf_data.accessors[i], allocator);
     }
 }
 
@@ -434,7 +434,7 @@ static void load_images( json& json_data, glTF::glTF& gltf_data, Allocator* allo
     gltf_data.images = ( glTF::Image* )allocate_and_zero( allocator, sizeof( glTF::Image ) * array_count );
     gltf_data.images_count = array_count;
 
-    for ( size_t i = 0; i < array_count; ++i ) {
+    for ( size_t i = 0; i < array_count; i++ ) {
         load_image( array[ i ], gltf_data.images[ i ], allocator );
     }
 }
