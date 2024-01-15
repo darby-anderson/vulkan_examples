@@ -9,7 +9,7 @@
 #include "string.hpp"
 #include "file_system.hpp"
 
-static const char* kDefault3DModel = "../../models/gltf/glTF-Sample-Models/2.0/Sponza/glTF/Sponza.gltf";
+static const char* kDefault3DModel = "../../models/gltf/glTF-Sample-Assets/Models/Sponza/glTF/Sponza.gltf";
 
 #define InjectDefault3DModel() \
     if(puffin::file_exists(kDefault3DModel)) { \
