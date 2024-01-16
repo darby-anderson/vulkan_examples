@@ -176,7 +176,7 @@ static void load_buffers(json& json_data, glTF::glTF& gltf_data, Allocator* allo
     }
 }
 
-static void load_buffer_view(json& json_data, glTF::BufferView buffer_view, Allocator* allocator) {
+static void load_buffer_view(json& json_data, glTF::BufferView& buffer_view, Allocator* allocator) {
     try_load_int(json_data, "buffer", buffer_view.buffer);
     try_load_int(json_data, "byteLength", buffer_view.byte_length);
     try_load_int(json_data, "byteOffset", buffer_view.byte_offset);

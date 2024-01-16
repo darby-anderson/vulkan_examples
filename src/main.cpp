@@ -89,6 +89,8 @@ int main(int argc, char** argv) {
 
     using namespace puffin;
 
+    time_service_init();
+
     MemoryService::instance()->init(nullptr);
 
     Allocator* allocator = &MemoryService::instance()->system_allocator;

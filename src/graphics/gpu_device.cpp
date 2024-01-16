@@ -1117,7 +1117,7 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
     }
 
     ShaderStateHandle shader_state = create_shader_state(creation.shaders);
-    if(shader_state.index = k_invalid_index) {
+    if(shader_state.index == k_invalid_index) {
         // Shader did not compile
         pipelines.release_resource(handle.index);
         handle.index = k_invalid_index;
@@ -1191,6 +1191,7 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
             vertex_input_info.vertexAttributeDescriptionCount = 0;
             vertex_input_info.pVertexAttributeDescriptions = nullptr;
         }
+
         // Vertex bindings
         VkVertexInputBindingDescription vertex_bindings[8];
         if(creation.vertex_input.num_vertex_streams) {
@@ -1352,8 +1353,17 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
 
         vkCreateGraphicsPipelines(vulkan_device, VK_NULL_HANDLE, 1, &pipeline_info, vulkan_allocation_callbacks, &pipeline->vk_pipeline);
 
-        pipeline->vk_bind_point = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
+        pipeline->vk_bind_point = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
 
+    } else {
+        VkComputePipelineCreateInfo pipeline_info { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+
+        pipeline_info.stage = shader_state_data->shader_stage_info[0];
+        pipeline_info.layout = pipeline_layout;
+
+        vkCreateComputePipelines(vulkan_device, VK_NULL_HANDLE, 1, &pipeline_info, vulkan_allocation_callbacks, &pipeline->vk_pipeline);
+
+        pipeline->vk_bind_point = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
     }
 
     return handle;

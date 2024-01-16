@@ -182,7 +182,7 @@ void ImGuiService::init(void* configuration) {
                 .set_name("RL_ImGui");
     } else {
         ds_creation.set_layout(pipeline_creation.descriptor_set_layout[0]).buffer(g_ui_cb, 0)
-                .texture(g_font_texture, 1).set_name("RL_ImGui");
+                .texture(g_font_texture, 0).set_name("RL_ImGui");
     }
     g_ui_descriptor_set = gpu->create_descriptor_set(ds_creation);
 
