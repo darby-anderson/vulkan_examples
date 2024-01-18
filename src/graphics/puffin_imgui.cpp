@@ -159,9 +159,8 @@ void ImGuiService::init(void* configuration) {
                 .add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 10, 1, "Texture"})
                 .set_name("RLL_ImGui");
     } else {
-        descriptor_set_layout_creation.add_binding({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, "LocalConstants"})
-                .add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, "Texture"})
-                .set_name("RLL_ImGui");
+        descriptor_set_layout_creation.add_binding({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, "LocalConstants"}).set_name("RLL_ImGui");
+        descriptor_set_layout_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, 1, "LocalConstants"}).set_name("RLL_ImGui");
     }
 
     g_descriptor_set_layout = gpu->create_descriptor_set_layout(descriptor_set_layout_creation);
@@ -182,7 +181,7 @@ void ImGuiService::init(void* configuration) {
                 .set_name("RL_ImGui");
     } else {
         ds_creation.set_layout(pipeline_creation.descriptor_set_layout[0]).buffer(g_ui_cb, 0)
-                .texture(g_font_texture, 0).set_name("RL_ImGui");
+                .texture(g_font_texture, 1).set_name("RL_ImGui");
     }
     g_ui_descriptor_set = gpu->create_descriptor_set(ds_creation);
 
