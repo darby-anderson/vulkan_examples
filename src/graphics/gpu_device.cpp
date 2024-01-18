@@ -1651,7 +1651,7 @@ DescriptorSetHandle GpuDevice::create_descriptor_set(const DescriptorSetCreation
     u8* memory = puffin_alloc_return_mem_pointer((sizeof(ResourceHandle) + sizeof(SamplerHandle) + sizeof(u16)) * creation.num_resources, allocator);
     descriptor_set->resources = (ResourceHandle*) memory;
     descriptor_set->samplers = (SamplerHandle*) (memory + sizeof(ResourceHandle) * creation.num_resources);
-    descriptor_set->bindings = (u16*) (memory + (sizeof(ResourceHandle) + sizeof(SamplerHandle) * creation.num_resources));
+    descriptor_set->bindings = (u16*) (memory + (sizeof(ResourceHandle) + sizeof(SamplerHandle)) * creation.num_resources);
     descriptor_set->num_resources = creation.num_resources;
     descriptor_set->layout = descriptor_set_layout;
 

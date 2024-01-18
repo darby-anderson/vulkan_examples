@@ -325,7 +325,7 @@ namespace puffin {
             const GroupSse2Impl group { control_bytes + sequence.get_offset() };
             const i8 hash2 = hash_2(hash);
             for(int i : group.Match(hash2)) {
-                const KeyValue& key_value = *(slots_ + sequence.get_offset());
+                const KeyValue& key_value = *(slots_ + sequence.get_offset(i));
                 if(key_value.key == key) {
                     return {sequence.get_offset(i)};
                 }
@@ -406,7 +406,7 @@ namespace puffin {
         while(true) {
             const GroupSse2Impl group {control_bytes + sequence.get_offset() };
             for(int i : group.Match(hash_2(hash))) {
-                const KeyValue& key_value = *(slots_ + sequence.get_offset());
+                const KeyValue& key_value = *(slots_ + sequence.get_offset(i));
                 if(key_value.key == key) {
                     return { sequence.get_offset(i), false };
                 }
@@ -416,7 +416,7 @@ namespace puffin {
             }
             sequence.next();
         }
-        return { prepare_insert(key), true };
+        return { prepare_insert(hash), true };
     }
 
     template <typename K, typename V>
