@@ -51,8 +51,8 @@ add_subdirectory(deps/tinyobjloader)
 target_link_libraries(${PROJECT_NAME} tinyobjloader)
 
 # SPIRV-Cross
-add_subdirectory(deps/SPIRV-Cross)
-target_link_libraries(${PROJECT_NAME} spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect)
+# add_subdirectory(deps/SPIRV-Cross)
+# target_link_libraries(${PROJECT_NAME} spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect)
 
 # TLSF
 add_subdirectory(deps/tlsf)

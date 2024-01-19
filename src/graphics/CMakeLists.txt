@@ -28,7 +28,7 @@ target_link_libraries(
         glfw
         glm::glm
         tinyobjloader
-        spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect
+        # spirv-cross-glsl spirv-cross-cpp spirv-cross-reflect
 )
 
 # header external libraries
