@@ -597,7 +597,7 @@ int main(int argc, char** argv) {
             window.resized = false;
         }
 
-        imgui->new_frame();
+        // imgui->new_frame();
 
         const i64 current_tick = time_now();
         f32 delta_time = (f32) time_delta_seconds(begin_frame_tick, current_tick);
@@ -605,7 +605,7 @@ int main(int argc, char** argv) {
 
         input_handler.start_new_frame();
 
-        if(ImGui::Begin("Puffin ImGui")) {
+        /*if(ImGui::Begin("Puffin ImGui")) {
             ImGui::InputFloat("Model scale", &model_scale, 0.001f);
         }
         ImGui::End();
@@ -613,7 +613,7 @@ int main(int argc, char** argv) {
         if(ImGui::Begin("GPU")) {
             gpu_profiler.imgui_draw();
         }
-        ImGui::End();
+        ImGui::End();*/
 
         {
             // Update rotating cube data
@@ -621,7 +621,7 @@ int main(int argc, char** argv) {
             float* cb_data = (float*)gpu.map_buffer(cb_map);
 
             if(cb_data) {
-                if(input_handler.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)) {
+                /*if(input_handler.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)) {
                     pitch += (input_handler.mouse_position.y - input_handler.previous_mouse_position.y) * 0.1f;
                     yaw += (input_handler.mouse_position.x - input_handler.previous_mouse_position.x) * 0.3f;
 
@@ -650,7 +650,7 @@ int main(int argc, char** argv) {
                     eye = glms_vec3_add(eye, glms_vec3_scale(right, 5.0f * delta_time));
                 } else if(input_handler.is_key_down(Key::KEY_A)){
                     eye = glms_vec3_sub(eye, glms_vec3_scale(look, 5.0f * delta_time));
-                }
+                }*/
 
                 mat4s view = glms_lookat(eye, glms_vec3_add(eye, look), vec3s{0.0f, 1.0f, 0.0f});
                 mat4s projection = glms_perspective(glm_rad(60.0f), gpu.swapchain_width * 1.0f / gpu.swapchain_height, 0.01f, 1000.0f);
@@ -712,7 +712,7 @@ int main(int argc, char** argv) {
                 gpu_commands->draw_indexed(TopologyType::Triangle, mesh_draw.count, 1, 0, 0, 0);
             }
 
-            imgui->render(*gpu_commands);
+            // imgui->render(*gpu_commands);
 
             gpu_commands->pop_marker();
 
