@@ -757,7 +757,7 @@ static void transition_image_layout(VkCommandBuffer command_buffer, VkImage imag
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     } else {
-        // p_print("Unsupported layout transition");
+        p_print("Unsupported layout transition");
     }
 
     vkCmdPipelineBarrier(command_buffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
@@ -2541,7 +2541,7 @@ void GpuDevice::new_frame() {
 
     // Descriptor Set Updates
     if(descriptor_set_updates.size) {
-        for(i32 i = descriptor_set_updates.size - 1; i >= 0; i--) {
+        for(u32 i = descriptor_set_updates.size - 1; i >= 0; i--) {
             DescriptorSetUpdate& update = descriptor_set_updates[i];
 
             update_descriptor_set_instant(update);

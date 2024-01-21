@@ -25,7 +25,7 @@ void GPUProfiler::init(puffin::Allocator* allocator_, u32 max_frames_) {
 
     allocator = allocator_;
     max_frames = max_frames_;
-    timestamps = (GPUTimestamp*) puffin_alloc(sizeof(GPUTimestamp) * max_frames, allocator);
+    timestamps = (GPUTimestamp*) puffin_alloc(sizeof(GPUTimestamp) * max_frames * 32, allocator);
     per_frame_active = (u16*) puffin_alloc(sizeof(u16) * max_frames, allocator);
 
     max_duration = 16.666f;
@@ -47,7 +47,7 @@ void GPUProfiler::shutdown() {
 }
 
 void GPUProfiler::update(GpuDevice& gpu) {
-    gpu.set_gpu_timestamps(!paused);
+    gpu.set_gpu_timestamps_enabled(!paused);
 
     if(initial_frames_paused) {
         initial_frames_paused--;

@@ -67,6 +67,8 @@ struct MeshDraw {
 
     u32                     count;
 
+    VkIndexType             index_type;
+
     puffin::DescriptorSetHandle     descriptor_set;
 };
 
@@ -581,11 +583,12 @@ int main(int argc, char** argv) {
 
     float model_scale = 0.008f;
 
+    int frame = 0;
+
     while(!window.should_exit()) {
 
         ZoneScoped;
 
-        // New frame
         if(!window.minimized) {
             gpu.new_frame();
         }
@@ -597,7 +600,7 @@ int main(int argc, char** argv) {
             window.resized = false;
         }
 
-        // imgui->new_frame();
+        imgui->new_frame();
 
         const i64 current_tick = time_now();
         f32 delta_time = (f32) time_delta_seconds(begin_frame_tick, current_tick);
@@ -605,7 +608,7 @@ int main(int argc, char** argv) {
 
         input_handler.start_new_frame();
 
-        /*if(ImGui::Begin("Puffin ImGui")) {
+        if(ImGui::Begin("Puffin ImGui")) {
             ImGui::InputFloat("Model scale", &model_scale, 0.001f);
         }
         ImGui::End();
@@ -613,7 +616,7 @@ int main(int argc, char** argv) {
         if(ImGui::Begin("GPU")) {
             gpu_profiler.imgui_draw();
         }
-        ImGui::End();*/
+        ImGui::End();
 
         {
             // Update rotating cube data
@@ -621,9 +624,16 @@ int main(int argc, char** argv) {
             float* cb_data = (float*)gpu.map_buffer(cb_map);
 
             if(cb_data) {
-                /*if(input_handler.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT)) {
-                    pitch += (input_handler.mouse_position.y - input_handler.previous_mouse_position.y) * 0.1f;
-                    yaw += (input_handler.mouse_position.x - input_handler.previous_mouse_position.x) * 0.3f;
+                if(input_handler.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) && !ImGui::GetIO().WantCaptureMouse) {
+
+                    f32 mouse_pos_dy = (f32)(input_handler.mouse_position.y - input_handler.previous_mouse_position.y);
+                    f32 mouse_pos_dx = (f32)(input_handler.mouse_position.x - input_handler.previous_mouse_position.x);
+
+//                    std::cout << "mouse_pos_y: " << input_handler.mouse_position.y << " | mouse__prev_pos_y: " << input_handler.previous_mouse_position.y << std::endl;
+//                    std::cout << "mouse_pos_dy: " << mouse_pos_dy << " | mouse_pos_dx: " << mouse_pos_dx << std::endl;
+
+                    pitch += (mouse_pos_dy) * 0.1f;
+                    yaw += (mouse_pos_dx) * 0.3f;
 
                     pitch = clamp(pitch, -60.0f, 60.0f);
 
@@ -632,7 +642,7 @@ int main(int argc, char** argv) {
                     }
 
                     mat3s rxm = glms_mat4_pick3( glms_rotate_make(glm_rad(-pitch), vec3s {1.0f, 0.0f, 0.0f }));
-                    mat3s rym = glms_mat4_pick3(glms_rotate_make(glm_rad(yaw), vec3s {0.0f, 1.0f, 0.0f}));
+                    mat3s rym = glms_mat4_pick3(glms_rotate_make(glm_rad(-yaw), vec3s {0.0f, 1.0f, 0.0f}));
 
                     look = glms_mat3_mulv(rxm, vec3s{0.0f, 0.0f, -1.0f});
                     look = glms_mat3_mulv(rym, look);
@@ -649,8 +659,8 @@ int main(int argc, char** argv) {
                 if(input_handler.is_key_down(Key::KEY_D)) {
                     eye = glms_vec3_add(eye, glms_vec3_scale(right, 5.0f * delta_time));
                 } else if(input_handler.is_key_down(Key::KEY_A)){
-                    eye = glms_vec3_sub(eye, glms_vec3_scale(look, 5.0f * delta_time));
-                }*/
+                    eye = glms_vec3_sub(eye, glms_vec3_scale(right, 5.0f * delta_time));
+                }
 
                 mat4s view = glms_lookat(eye, glms_vec3_add(eye, look), vec3s{0.0f, 1.0f, 0.0f});
                 mat4s projection = glms_perspective(glm_rad(60.0f), gpu.swapchain_width * 1.0f / gpu.swapchain_height, 0.01f, 1000.0f);
@@ -706,13 +716,13 @@ int main(int argc, char** argv) {
                 gpu_commands->bind_vertex_buffer(mesh_draw.tangent_buffer, 1, mesh_draw.tangent_offset);
                 gpu_commands->bind_vertex_buffer(mesh_draw.normal_buffer, 2, mesh_draw.normal_offset);
                 gpu_commands->bind_vertex_buffer(mesh_draw.texcoord_buffer, 3, mesh_draw.texcoord_offset);
-                gpu_commands->bind_index_buffer(mesh_draw.index_buffer, mesh_draw.index_offset);
+                gpu_commands->bind_index_buffer(mesh_draw.index_buffer, mesh_draw.index_offset, mesh_draw.index_type);
                 gpu_commands->bind_descriptor_set(&mesh_draw.descriptor_set, 1, nullptr, 0);
 
                 gpu_commands->draw_indexed(TopologyType::Triangle, mesh_draw.count, 1, 0, 0, 0);
             }
 
-            // imgui->render(*gpu_commands);
+            imgui->render(*gpu_commands);
 
             gpu_commands->pop_marker();
 
@@ -726,6 +736,8 @@ int main(int argc, char** argv) {
         }
 
         FrameMark;
+
+        frame++;
     }
 
     for(u32 mesh_index = 0; mesh_index < mesh_draws.size; mesh_index++) {

@@ -109,6 +109,12 @@ namespace puffin {
         glfwSetFramebufferSizeCallback(window, callback);
     }
 
+    CursorPosition Window::get_window_cursor_position() {
+        CursorPosition cursor_position{};
+        glfwGetCursorPos(window, &cursor_position.x, &cursor_position.y);
+        return cursor_position;
+    }
+
 //    void Window::register_os_messages_callback(OsMessagesCallback callback, void* user_data) {
 //        os_messages_callbacks.push(callback);
 //        os_messages_callbacks_data.push(user_data);

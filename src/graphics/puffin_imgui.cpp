@@ -13,8 +13,10 @@
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_vulkan.h"
 
 #include <stdio.h>
+#include <iostream>
 
 namespace puffin {
 
@@ -107,7 +109,7 @@ void ImGuiService::init(void* configuration) {
     ImGui::StyleColorsDark();
 
     // Setup platform/renderer bindings
-    ImGui_ImplGlfw_InitForVulkan((GLFWwindow*) imgui_config->window_handle, false);
+    ImGui_ImplGlfw_InitForVulkan((GLFWwindow*) imgui_config->window_handle, true);
 
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "Puffin_ImGui";
@@ -120,6 +122,13 @@ void ImGuiService::init(void* configuration) {
     int width, height;
 
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+//    for(int w = 0; w < width; w++) {
+//        for(int h = 0; h < height; h++) {
+//            std::cout << (u32) pixels[(h * w) + w];
+//        }
+//        std::cout << std::endl;
+//    }
 
     TextureCreation texture_creation;
     texture_creation.set_format_type(VK_FORMAT_R8G8B8A8_UNORM, TextureType::Texture2D)
@@ -224,7 +233,8 @@ void ImGuiService::shutdown() {
     ImGui::DestroyContext();
 }
 
-void ImGuiService::new_frame() {
+void ImGuiService:: new_frame() {
+    // ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
@@ -299,7 +309,7 @@ void ImGuiService::render(puffin::CommandBuffer& commands) {
     commands.bind_pass(gpu->get_swapchain_pass());
     commands.bind_pipeline(g_imgui_pipeline);
     commands.bind_vertex_buffer(g_vb, 0, 0);
-    commands.bind_index_buffer(g_ib, 0);
+    commands.bind_index_buffer(g_ib, 0, VK_INDEX_TYPE_UINT16);
 
     const Viewport viewport = {0, 0, (u16)fb_width, (u16)fb_height, 0.0f, 1.0f };
     commands.set_viewport(&viewport);
@@ -352,7 +362,7 @@ void ImGuiService::render(puffin::CommandBuffer& commands) {
                 clip_rect.z = (pcmd->ClipRect.z - clip_off.x) * clip_scale.x;
                 clip_rect.w = (pcmd->ClipRect.w - clip_off.y) * clip_scale.y;
 
-                if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z > 0.0f && clip_rect.w >= 0.0f) {
+                if (clip_rect.x < fb_width && clip_rect.y < fb_height && clip_rect.z >= 0.0f && clip_rect.w >= 0.0f) {
                     // apply scissors/clipping rect
                     if (clip_origin_lower_left) {
                         Rect2DInt scissor_rect = {(int16_t) clip_rect.x, (int16_t) (fb_height - clip_rect.w),
@@ -368,27 +378,27 @@ void ImGuiService::render(puffin::CommandBuffer& commands) {
 
                     TextureHandle new_texture = *(TextureHandle*) (pcmd->TextureId);
                     if (!gpu->bindless_supported) {
-                        if (new_texture.index != last_texture.index && new_texture.index != k_invalid_index) {
-                            last_texture = new_texture;
-                            FlatHashMapIterator it = g_texture_to_descriptor_set.find(last_texture.index);
+                        if (new_texture.index != last_texture.index && new_texture.index != k_invalid_texture.index) {
+                        last_texture = new_texture;
+                        FlatHashMapIterator it = g_texture_to_descriptor_set.find(last_texture.index);
 
-                            if (it.is_invalid()) {
-                                // Create new descriptor set
-                                DescriptorSetCreation ds_creation{};
+                        if (it.is_invalid()) {
+                            // Create new descriptor set
+                            DescriptorSetCreation ds_creation{};
 
-                                ds_creation.set_layout(g_descriptor_set_layout).buffer(g_ui_cb, 0)
-                                        .texture(last_texture, 1).set_name("RL_Dynamic_ImGui");
-                                last_descriptor_set = gpu->create_descriptor_set(ds_creation);
+                            ds_creation.set_layout(g_descriptor_set_layout).buffer(g_ui_cb, 0)
+                                    .texture(last_texture, 1).set_name("RL_Dynamic_ImGui");
+                            last_descriptor_set = gpu->create_descriptor_set(ds_creation);
 
-                                g_texture_to_descriptor_set.insert(new_texture.index, last_descriptor_set.index);
-                            } else {
-                                last_descriptor_set.index = g_texture_to_descriptor_set.get(it);
-                            }
-                            commands.bind_descriptor_set(&last_descriptor_set, 1, nullptr, 0);
+                            g_texture_to_descriptor_set.insert(new_texture.index, last_descriptor_set.index);
+                        } else {
+                            last_descriptor_set.index = g_texture_to_descriptor_set.get(it);
                         }
+                        commands.bind_descriptor_set(&last_descriptor_set, 1, nullptr, 0);
                     }
-                    commands.draw_indexed(TopologyType::Triangle, pcmd->ElemCount, 1,
-                                          index_buffer_offset + pcmd->IdxOffset, vtx_buffer_offset + pcmd->VtxOffset,
+                }
+                commands.draw_indexed(TopologyType::Triangle, pcmd->ElemCount, 1,
+                                      index_buffer_offset + pcmd->IdxOffset, vtx_buffer_offset + pcmd->VtxOffset,
                                           new_texture.index);
                 }
 

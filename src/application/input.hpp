@@ -18,16 +18,11 @@ namespace puffin {
 
     // These match GLFW's mouse enum
     enum MouseButton {
-        MOUSE_BUTTON_LAST = 0,
-        MOUSE_BUTTON_LEFT = 1,
-        MOUSE_BUTTON_RIGHT = 2,
-        MOUSE_BUTTON_MIDDLE = 3,
+        MOUSE_BUTTON_LEFT = 0,
+        MOUSE_BUTTON_RIGHT = 1,
+        MOUSE_BUTTON_MIDDLE = 2,
+        MOUSE_BUTTON_LAST = 7,
         MOUSE_BUTTON_COUNT = 8
-    };
-
-    struct InputVector2 {
-        f32         x;
-        f32         y;
     };
 
     struct InputService : public Service {
@@ -53,8 +48,8 @@ namespace puffin {
         u8 first_frame_mouse_buttons[MOUSE_BUTTON_COUNT];
         u8 released_mouse_buttons[MOUSE_BUTTON_COUNT];
 
-        InputVector2 mouse_position = { 0.0f, 0.0f };
-        InputVector2 previous_mouse_position = { 0.0f, 0.0f };
+        CursorPosition mouse_position = { 0.0f, 0.0f };
+        CursorPosition previous_mouse_position = { 0.0f, 0.0f };
 
         static constexpr cstring k_name     = "puffin_input_service";
 

@@ -184,7 +184,7 @@ namespace puffin {
         void                    pop_marker(VkCommandBuffer command_buffer);
 
         // GPU Timings
-        void                    set_gpu_timestamps(bool value) { timestamps_enabled = value; }
+        void                    set_gpu_timestamps_enabled(bool value) { timestamps_enabled = value; }
 
         u32                     get_gpu_timestamps(GPUTimestamp* out_timestamps);
         void                    push_gpu_timestamp(CommandBuffer* command_buffer, cstring name);

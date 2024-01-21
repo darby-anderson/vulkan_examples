@@ -21,6 +21,11 @@ namespace puffin {
         Allocator*      allocator;
     };
 
+    struct CursorPosition {
+        f64 x;
+        f64 y;
+    };
+
     typedef void        (*OsMessagesCallback) (void* os_event, void* user_data);
 
     struct Window : public Service {
@@ -34,13 +39,15 @@ namespace puffin {
 //        void            register_os_messages_callback(OsMessagesCallback callback, void* user_data);
 //        void            deregister_os_messages_callback(OsMessagesCallback callback);
 
+
+
         void            center_mouse(bool dragging);
 
         bool            has_focus();
 
         bool            should_exit();
 
-
+        CursorPosition  get_window_cursor_position();
 
         void            set_window_user_pointer(void* user);
         void            set_key_press_callback(GLFWkeyfun callback);

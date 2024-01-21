@@ -19,7 +19,7 @@ struct CommandBuffer {
     void                    bind_pass(RenderPassHandle render_pass_handle);
     void                    bind_pipeline(PipelineHandle pipeline_handle);
     void                    bind_vertex_buffer(BufferHandle buffer_handle, u32 binding, u32 offset);
-    void                    bind_index_buffer(BufferHandle buffer_handle, u32 offset);
+    void                    bind_index_buffer(BufferHandle buffer_handle, u32 offset, VkIndexType index_type);
     void                    bind_descriptor_set(DescriptorSetHandle* descriptor_set_handles, u32 num_lists, u32* offsets, u32 num_offsets);
 
     void                    set_viewport(const Viewport* viewport);

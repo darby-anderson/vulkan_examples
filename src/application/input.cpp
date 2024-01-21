@@ -74,7 +74,7 @@ namespace puffin {
         }
 
         previous_mouse_position = mouse_position;
-
+        mouse_position = window->get_window_cursor_position();
     }
 
     bool InputService::is_mouse_button_down(MouseButton button) {
