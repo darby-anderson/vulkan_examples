@@ -19,6 +19,7 @@
 
 #include "cglm/struct/mat3.h"
 #include "cglm/struct/mat4.h"
+#include "cglm/struct/quat.h"
 #include "cglm/struct/cam.h"
 #include "cglm/struct/affine.h"
 
@@ -45,8 +46,28 @@ puffin::DescriptorSetLayoutHandle   cube_dsl;
 
 f32 rx, ry;
 
-struct MaterialData {
-    vec4s                   base_color_factor;
+enum MaterialFeatures {
+    MaterialFeatures_ColorTexture       = 1 << 0,
+    MaterialFeatures_NormalTexture      = 1 << 1,
+    MaterialFeatures_RoughnessTexture   = 1 << 2,
+    MaterialFeatures_OcclusionTexture   = 1 << 3,
+    MaterialFeatures_EmissiveTexture    = 1 << 4,
+
+    MaterialFeatures_TangentVertexAttribute     = 1 << 5,
+    MaterialFeatures_TexcoordVertexAttribute    = 1 << 6,
+};
+
+struct alignas(16) MaterialData {
+    vec4s   base_color_factor;
+    vec4s   model;
+    vec4s   model_inv;
+
+    vec3s   emissive_factor;
+    f32     metallic_factor;
+
+    f32     roughness_factor;
+    f32     occulsion_factor;
+    u32     flags;
 };
 
 struct MeshDraw {
@@ -75,10 +96,48 @@ struct MeshDraw {
 struct UniformData {
     mat4s m;
     mat4s vp;
-    mat4s inverseM;
     vec4s eye;
     vec4s light;
 };
+
+struct Transform {
+    vec3s       scale;
+    versors     rotation;
+    vec3s       translation;
+
+    void        reset();
+    mat4s       calculate_matrix() const {
+        const mat4s translation_matrix = glms_translate_make(translation);
+        const mat4s scale_matrix = glms_scale_make(scale);
+        const mat4s rotation_matrix = glms_quat_mat4(rotation);
+
+        const mat4s local_matrix = glms_mat4_mul(glms_mat4_mul(translation_matrix, rotation_matrix), scale_matrix);
+        return local_matrix;
+    }
+};
+
+static u8* get_buffer_data(puffin::glTF::BufferView* buffer_views, u32 buffer_index, puffin::Array<void*>& buffers_data, u32* buffer_size = nullptr, char** buffer_name = nullptr) {
+    using namespace puffin;
+
+    glTF::BufferView& buffer = buffer_views[buffer_index];
+
+    i32 offset = buffer.byte_offset;
+    if(offset == glTF::INVALID_INT_VALUE) {
+        offset = 0;
+    }
+
+    if(buffer_name != nullptr) {
+        *buffer_name = buffer.name.data;
+    }
+
+    if(buffer_size != nullptr) {
+        *buffer_size = buffer.byte_length;
+    }
+
+    u8* data = (u8*) buffers_data[buffer.buffer] + offset;
+
+    return data;
+}
 
 int main(int argc, char** argv) {
 
@@ -157,6 +216,19 @@ int main(int argc, char** argv) {
         images.push(*tr);
     }
 
+    TextureCreation texture_creation {};
+    u32 zero_value =0;
+    texture_creation.set_name("dummy_texture").set_size(1, 1, 1)
+        .set_format_type(VK_FORMAT_R8G8B8A8_UNORM, TextureType::Texture2D).set_flags(1, 0).set_data(&zero_value);
+    TextureHandle dummy_texture = gpu.create_texture(texture_creation);
+
+    SamplerCreation sampler_creation {};
+    sampler_creation.min_filter = VK_FILTER_LINEAR;
+    sampler_creation.mag_filter = VK_FILTER_LINEAR;
+    sampler_creation.address_mode_u = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_creation.address_mode_v = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    SamplerHandle dummy_sampler = gpu.create_sampler(sampler_creation);
+
     StringBuffer resource_name_buffer;
     resource_name_buffer.init(allocator, 4096);
 
@@ -193,27 +265,26 @@ int main(int argc, char** argv) {
     buffers.init(allocator, scene.buffer_views_count);
 
     for(u32 buffer_index = 0; buffer_index < scene.buffer_views_count; buffer_index++) {
-        glTF::BufferView& buffer = scene.buffer_views[buffer_index];
-
-        i32 offset = buffer.byte_offset;
-        if(offset == glTF::INVALID_INT_VALUE) {
-            offset = 0;
-        }
-
-        u8* data = (u8*) buffers_data[buffer.buffer] + offset;
+        char* buffer_name = nullptr;
+        u32 buffer_size = 0 ;
+        u8* data = get_buffer_data(scene.buffer_views, buffer_index, buffers_data, &buffer_size, &buffer_name);
 
         VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
-        char* buffer_name = buffer.name.data;
         if(buffer_name == nullptr) {
             buffer_name = resource_name_buffer.append_use_f("buffer_%u", buffer_index);
+        } else {
+            buffer_name = resource_name_buffer.append_use_f("%s_%u", buffer_name, buffer_index);
+
         }
 
-        BufferResource* br = renderer.create_buffer(flags, ResourceUsageType::Immutable, buffer.byte_length, data, buffer_name);
+        BufferResource* br = renderer.create_buffer(flags, ResourceUsageType::Immutable, buffer_size, data, buffer_name);
         PASSERT(br != nullptr);
 
         buffers.push(*br);
     }
+
+    // TODO START HERE 1/21/24
 
     for(u32 buffer_index = 0; buffer_index < scene.buffers_count; buffer_index++) {
         void* buffer = buffers_data[buffer_index];
@@ -628,9 +699,6 @@ int main(int argc, char** argv) {
 
                     f32 mouse_pos_dy = (f32)(input_handler.mouse_position.y - input_handler.previous_mouse_position.y);
                     f32 mouse_pos_dx = (f32)(input_handler.mouse_position.x - input_handler.previous_mouse_position.x);
-
-//                    std::cout << "mouse_pos_y: " << input_handler.mouse_position.y << " | mouse__prev_pos_y: " << input_handler.previous_mouse_position.y << std::endl;
-//                    std::cout << "mouse_pos_dy: " << mouse_pos_dy << " | mouse_pos_dx: " << mouse_pos_dx << std::endl;
 
                     pitch += (mouse_pos_dy) * 0.1f;
                     yaw += (mouse_pos_dx) * 0.3f;

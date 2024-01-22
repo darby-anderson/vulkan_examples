@@ -1181,7 +1181,8 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
                 vertex_attributes[i] = {
                         vertex_attribute.location,
                         vertex_attribute.binding,
-                        to_vk_vertex_format(vertex_attribute.format)
+                        to_vk_vertex_format(vertex_attribute.format),
+                        vertex_attribute.offset
                 };
             }
 
@@ -1195,6 +1196,8 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
         // Vertex bindings
         VkVertexInputBindingDescription vertex_bindings[8];
         if(creation.vertex_input.num_vertex_streams) {
+            vertex_input_info.vertexBindingDescriptionCount = creation.vertex_input.num_vertex_streams;
+
             for(u32 i = 0; i < creation.vertex_input.num_vertex_streams; i++) {
                 const VertexStream& vertex_stream = creation.vertex_input.vertex_streams[i];
                 VkVertexInputRate vertex_rate = vertex_stream.input_rate == VertexInputRate::PerVertex ?
@@ -1205,7 +1208,7 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
                         vertex_rate
                 };
             }
-            vertex_input_info.vertexBindingDescriptionCount = creation.vertex_input.num_vertex_streams;
+
             vertex_input_info.pVertexBindingDescriptions = vertex_bindings;
         } else {
             vertex_input_info.vertexBindingDescriptionCount = 0;
@@ -1915,11 +1918,12 @@ static VkRenderPass vulkan_create_render_pass(GpuDevice& gpu, const RenderPassOu
     // Calculate active attachments for the subpass
     VkAttachmentDescription attachments[k_max_image_outputs + 1] = {};
 
-    for(u32 active_attachments = 0; active_attachments < output.num_color_formats; active_attachments++) {
+    u32 active_attachments = 0;
+    for(; active_attachments < output.num_color_formats; active_attachments++) {
         attachments[active_attachments] = color_attachments[active_attachments];
         active_attachments++; // TODO!! Find out if this second increment is on purpose
     }
-    subpass.colorAttachmentCount = output.num_color_formats;
+    subpass.colorAttachmentCount = active_attachments ? active_attachments - 1 : 0;
     subpass.pColorAttachments = color_attachments_refs;
 
     subpass.pDepthStencilAttachment = nullptr;
@@ -1932,7 +1936,7 @@ static VkRenderPass vulkan_create_render_pass(GpuDevice& gpu, const RenderPassOu
     }
 
     VkRenderPassCreateInfo render_pass_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-    render_pass_info.attachmentCount = output.num_color_formats + depth_stencil_count;
+    render_pass_info.attachmentCount = subpass.colorAttachmentCount + depth_stencil_count;
     render_pass_info.pAttachments = attachments;
     render_pass_info.subpassCount = 1;
     render_pass_info.pSubpasses = &subpass;

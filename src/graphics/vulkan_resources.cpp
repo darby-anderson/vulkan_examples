@@ -16,6 +16,43 @@ DepthStencilCreation& DepthStencilCreation::set_depth(bool write, VkCompareOp co
     return *this;
 }
 
+// Blend State
+BlendState& BlendState::set_color(VkBlendFactor source_color, VkBlendFactor destination_color, VkBlendOp color_operation) {
+    this->source_color = source_color;
+    this->destination_color = destination_color;
+    this->color_operation = color_operation;
+    this->blend_enabled = 1;
+
+    return *this;
+}
+
+BlendState& BlendState::set_alpha(VkBlendFactor source_alpha, VkBlendFactor destination_alpha, VkBlendOp alpha_operation) {
+    this->source_alpha = source_alpha;
+    this->destination_alpha = destination_alpha;
+    this->alpha_operation = alpha_operation;
+    this->separate_blend = 1;
+
+    return *this;
+}
+
+BlendState& BlendState::set_color_write_state(ColorWriteEnabled::Mask value) {
+    this->color_write_mask = value;
+
+    return *this;
+}
+
+// BlendStateCreation
+
+BlendStateCreation& BlendStateCreation::reset() {
+    active_states = 0;
+
+    return *this;
+}
+
+BlendState& BlendStateCreation::add_blend_state() {
+    return blend_states[active_states++];
+}
+
 // BufferCreation
 BufferCreation& BufferCreation::reset() {
     size = 0;
@@ -220,7 +257,7 @@ DescriptorSetCreation& DescriptorSetCreation::set_name(const char* name) {
     return *this;
 }
 
-
+// Vertex Input Creation //////////////////
 VertexInputCreation& VertexInputCreation::reset() {
     num_vertex_streams = 0;
     num_vertex_attributes = 0;
@@ -366,41 +403,7 @@ ExecutionBarrier& ExecutionBarrier::add_memory_barrier(const MemoryBarrier& memo
     return *this;
 }
 
-// Blend State
 
-BlendState& BlendState::set_color(VkBlendFactor source_color, VkBlendFactor destination_color, VkBlendOp color_operation) {
-    this->source_color = source_color;
-    this->destination_color = destination_color;
-    this->color_operation = color_operation;
-
-    return *this;
-}
-
-BlendState& BlendState::set_alpha(VkBlendFactor source_alpha, VkBlendFactor destination_alpha, VkBlendOp alpha_operation) {
-    this->source_alpha = source_alpha;
-    this->destination_alpha = destination_alpha;
-    this->alpha_operation = alpha_operation;
-
-    return *this;
-}
-
-BlendState& BlendState::set_color_write_state(ColorWriteEnabled::Mask value) {
-    this->color_write_mask = value;
-
-    return *this;
-}
-
-// BlendStateCreation
-
-BlendStateCreation& BlendStateCreation::reset() {
-    active_states = 0;
-
-    return *this;
-}
-
-BlendState& BlendStateCreation::add_blend_state() {
-    return blend_states[active_states++];
-}
 
 };
 
