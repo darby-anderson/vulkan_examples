@@ -35,6 +35,7 @@
 
 #include <stdlib.h>
 
+static const u16 INVALID_TEXTURE_INDEX = ~0u;
 
 // Rotating cube test
 puffin::BufferHandle                cube_vb;
@@ -66,11 +67,13 @@ struct alignas(16) MaterialData {
     f32     metallic_factor;
 
     f32     roughness_factor;
-    f32     occulsion_factor;
+    f32     occlusion_factor;
     u32     flags;
 };
 
 struct MeshDraw {
+    puffin::Material*       material;
+
     puffin::BufferHandle    index_buffer;
     puffin::BufferHandle    position_buffer;
     puffin::BufferHandle    tangent_buffer;
@@ -86,11 +89,24 @@ struct MeshDraw {
     u32                     normal_offset;
     u32                     texcoord_offset;
 
-    u32                     count;
+    u32                     primitive_count;
 
-    VkIndexType             index_type;
+    // indices for bindless textures
+    u16                     diffuse_texture_index;
+    u16                     roughness_texture_index;
+    u16                     normal_texture_index;
+    u16                     occlusion_texture_index;
 
-    puffin::DescriptorSetHandle     descriptor_set;
+    vec4s                   base_color_factor;
+    vec4s                   metallic_roughness_occlusion_factor;
+    vec4s                   scale;
+
+    f32                     alpha_cutoff;
+    u32                     flags;
+};
+
+enum DrawFlags {
+    DrawFlags_AlphaMask         1 << 0,
 };
 
 struct UniformData {
@@ -98,6 +114,18 @@ struct UniformData {
     mat4s vp;
     vec4s eye;
     vec4s light;
+};
+
+struct MeshData {
+    mat4s       m;
+    mat4s       inverseM;
+
+    u32         textures[4]; // diffuse, roughness, normal, occlusion
+    vec4s       base_color_factor;
+    vec4s       metallic_roughness_occlusion_factor; // metallic, roughness, occlusion
+    float       alpha_cutoff;
+    float       padding_[3];
+    u32         flags;
 };
 
 struct Transform {
@@ -137,6 +165,120 @@ static u8* get_buffer_data(puffin::glTF::BufferView* buffer_views, u32 buffer_in
     u8* data = (u8*) buffers_data[buffer.buffer] + offset;
 
     return data;
+}
+
+struct Scene {
+    puffin::Array<MeshDraw>         mesh_draws;
+
+    puffin::Array<puffin::TextureResource>  images;
+    puffin::Array<puffin::SamplerResource>  samplers;
+    puffin::Array<puffin::BufferResource>   buffers;
+
+    puffin::glTF::glTF              gltf_scene;
+};
+
+static bool get_mesh_material(puffin::Renderer& renderer, Scene& scene, puffin::glTF::Material& material, MeshDraw& mesh_draw) {
+    using namespace puffin;
+
+    bool transparent = false;
+    GpuDevice& gpu = *renderer.gpu;
+
+    if(material.pbr_metallic_roughness != nullptr) {
+        if (material.pbr_metallic_roughness->base_color_factor_count != 0) {
+            PASSERT(material.pbr_metallic_roughness->base_color_factor_count == 4);
+
+            mesh_draw.material_data.base_color_factor = {
+                    material.pbr_metallic_roughness->base_color_factor[0],
+                    material.pbr_metallic_roughness->base_color_factor[1],
+                    material.pbr_metallic_roughness->base_color_factor[2],
+                    material.pbr_metallic_roughness->base_color_factor[3],
+            };
+        } else {
+            mesh_draw.material_data.base_color_factor = {1.0f, 1.0f, 1.0f, 1.0f};
+        }
+
+        if (material.pbr_metallic_roughness->roughness_factor != glTF::INVALID_FLOAT_VALUE) {
+            mesh_draw.metallic_roughness_occlusion_factor.x = material.pbr_metallic_roughness->roughness_factor;
+        } else {
+            mesh_draw.metallic_roughness_occlusion_factor.x = 1.0f;
+        }
+
+        if (material.alpha_mode.data != nullptr && strcmp(material.alpha_mode.data, "MASK") == 0) {
+            mesh_draw.flags |= DrawFlags_AlphaMask;
+            transparent = true;
+        }
+
+        if (material.alpha_cutoff != glTF::INVALID_FLOAT_VALUE) {
+            mesh_draw.alpha_cutoff = material.alpha_cutoff;
+        }
+
+        if (material.pbr_metallic_roughness->metallic_factor != glTF::INVALID_FLOAT_VALUE) {
+            mesh_draw.metallic_roughness_occlusion_factor.y = material.pbr_metallic_roughness->metallic_factor;
+        } else {
+            mesh_draw.metallic_roughness_occlusion_factor.y = 1.0f;
+        }
+
+        if (material.pbr_metallic_roughness->base_color_texture != nullptr) {
+            glTF::Texture& diffuse_texture = scene.gltf_scene.textures[material.pbr_metallic_roughness->base_color_texture->index];
+            TextureResource& diffuse_texture_gpu = scene.images[diffuse_texture.source];
+            SamplerResource& diffuse_sampler_gpu = scene.samplers[diffuse_texture.sampler];
+
+            mesh_draw.diffuse_texture_index = diffuse_texture_gpu.handle.index;
+
+            gpu.link_texture_sampler(diffuse_texture_gpu.handle, diffuse_sampler_gpu.handle);
+        } else {
+            mesh_draw.diffuse_texture_index = INVALID_TEXTURE_INDEX;
+        }
+
+        if (material.pbr_metallic_roughness->metallic_roughness_texture != nullptr) {
+            glTF::Texture& roughness_texture = scene.gltf_scene.textures[material.pbr_metallic_roughness->metallic_roughness_texture->index];
+            TextureResource& roughness_texture_gpu = scene.images[roughness_texture.source];
+            SamplerResource& roughness_sampler_gpu = scene.samplers[roughness_texture.sampler];
+
+            mesh_draw.roughness_texture_index = roughness_texture_gpu.handle.index;
+
+            gpu.link_texture_sampler(roughness_texture_gpu.handle, roughness_sampler_gpu.handle);
+        } else {
+            mesh_draw.roughness_texture_index = INVALID_TEXTURE_INDEX;
+        }
+    }
+
+    if(material.occlusion_texture != nullptr) {
+        glTF::Texture& occlusion_texture = scene.gltf_scene.textures[material.occlusion_texture->index];
+        TextureResource& occlusion_texture_gpu = scene.images[occlusion_texture.source];
+        SamplerResource& occlusion_sampler_gpu = scene.samplers[occlusion_texture.sampler];
+
+        mesh_draw.occlusion_texture_index = occlusion_texture_gpu.handle.index;
+
+        if(material.occlusion_texture->strength != glTF::INVALID_FLOAT_VALUE) {
+            mesh_draw.metallic_roughness_occlusion_factor.z = material.occlusion_texture->strength;
+        } else {
+            mesh_draw.metallic_roughness_occlusion_factor.z = 1.0f;
+        }
+
+        gpu.link_texture_sampler(occlusion_texture_gpu.handle, occlusion_sampler_gpu.handle);
+    } else {
+        mesh_draw.occlusion_texture_index = INVALID_TEXTURE_INDEX;
+    }
+
+    if(material.normal_texture != nullptr) {
+        glTF::Texture& normal_texture = scene.gltf_scene.textures[material.normal_texture->index];
+        TextureResource& normal_texture_gpu = scene.images[normal_texture.source];
+        SamplerResource& normal_sampler_gpu = scene.samplers[normal_texture.sampler];
+
+        gpu.link_texture_sampler(normal_texture_gpu.handle, normal_sampler_gpu.handle);
+
+        mesh_draw.normal_texture_index = normal_texture_gpu.handle.index;
+    } else {
+        mesh_draw.normal_texture_index = INVALID_TEXTURE_INDEX;
+    }
+
+    // Create material buffer
+    BufferCreation buffer_creation;
+    buffer_creation.reset().set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ResourceUsageType::Dynamic, sizeof(MeshData)).set_name("mesh_data"); // TODO is this supposed to be mesh data??
+    mesh_draw.material_buffer = gpu.create_buffer(buffer_creation);
+
+    return transparent;
 }
 
 int main(int argc, char** argv) {
@@ -217,7 +359,7 @@ int main(int argc, char** argv) {
     }
 
     TextureCreation texture_creation {};
-    u32 zero_value =0;
+    u32 zero_value = 0;
     texture_creation.set_name("dummy_texture").set_size(1, 1, 1)
         .set_format_type(VK_FORMAT_R8G8B8A8_UNORM, TextureType::Texture2D).set_flags(1, 0).set_data(&zero_value);
     TextureHandle dummy_texture = gpu.create_texture(texture_creation);
@@ -328,7 +470,7 @@ int main(int argc, char** argv) {
             uint MaterialFeatures_ColorTexture              = 1 << 0;
             uint MaterialFeatures_NormalTexture             = 1 << 1;
             uint MaterialFeatures_RoughnessTexture          = 1 << 2;
-            uint MaterialFeatures_OcculusionTexture         = 1 << 3;
+            uint MaterialFeatures_OcclusionTexture          = 1 << 3;
             uint MaterialFeatures_EmissiveTexture           = 1 << 4;
             uint MaterialFeatures_TangentVertexAttribute    = 1 << 5;
             uint MaterialFeatures_TexcoordVertexAttribute   = 1 << 6;
@@ -349,7 +491,7 @@ int main(int argc, char** argv) {
                 float metallic_factor;
 
                 float roughness_factor;
-                float occulsion_factor;
+                float occlusion_factor;
                 uint flags;
             };
 
@@ -369,7 +511,7 @@ int main(int argc, char** argv) {
                 vNormal = mat3(model_inv) * normal;
 
                 if((flags & MaterialFeatures_TexcoordVertexAttribute) != 0) {
-                    vTexcoord0 = texCoord0;
+                    vTexCoord0 = texCoord0;
                 }
 
                 if((flags & MaterialFeatures_TangentVertexAttribute) != 0) {
@@ -384,7 +526,7 @@ int main(int argc, char** argv) {
             uint MaterialFeatures_ColorTexture              = 1 << 0;
             uint MaterialFeatures_NormalTexture             = 1 << 1;
             uint MaterialFeatures_RoughnessTexture          = 1 << 2;
-            uint MaterialFeatures_OcculusionTexture         = 1 << 3;
+            uint MaterialFeatures_OcclusionTexture          = 1 << 3;
             uint MaterialFeatures_EmissiveTexture           = 1 << 4;
             uint MaterialFeatures_TangentVertexAttribute    = 1 << 5;
             uint MaterialFeatures_TexcoordVertexAttribute   = 1 << 6;
@@ -392,7 +534,6 @@ int main(int argc, char** argv) {
             layout(std140, binding = 0) uniform LocalConstants {
                 mat4 m;
                 mat4 vp;
-                mat4 mInverse;
                 vec4 eye;
                 vec4 light;
             };
@@ -406,7 +547,7 @@ int main(int argc, char** argv) {
                 float metallic_factor;
 
                 float roughness_factor;
-                float occulsion_factor;
+                float occlusion_factor;
                 uint flags;
             };
 
@@ -427,22 +568,22 @@ int main(int argc, char** argv) {
 
             vec3 decode_srgb(vec3 c) {
                 vec3 result;
-                if(c.r < 0.04045) {
+                if(c.r <= 0.04045) {
                     result.r = c.r / 12.92;
                 } else {
-                    result.r = pow((c.r + 0.55) / 1.055, 2.4);
+                    result.r = pow((c.r + 0.055) / 1.055, 2.4);
                 }
 
-                if(c.g < 0.04045) {
+                if(c.g <= 0.04045) {
                     result.g = c.g / 12.92;
                 } else {
-                    result.g = pow((c.g + 0.55) / 1.055, 2.4);
+                    result.g = pow((c.g + 0.055) / 1.055, 2.4);
                 }
 
-                if(c.b < 0.04045) {
+                if(c.b <= 0.04045) {
                     result.b = c.b / 12.92;
                 } else {
-                    result.b = pow((c.b + 0.55) / 1.055, 2.4);
+                    result.b = pow((c.b + 0.055) / 1.055, 2.4);
                 }
 
                 return clamp(result, 0.0, 1.0);
@@ -506,7 +647,7 @@ int main(int argc, char** argv) {
                     vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
                     vec3 B = normalize(-Q1 * st2.s + Q2 * st1.s);
 
-                    mat3 TBN = mat3(
+                    TBN = mat3(
                         T,
                         B,
                         normalize(vNormal)
@@ -525,7 +666,7 @@ int main(int argc, char** argv) {
                 vec3 H = normalize(L + V);
 
                 float roughness = roughness_factor;
-                float metalness = metalness_factor;
+                float metalness = metallic_factor;
 
                 if((flags & MaterialFeatures_RoughnessTexture) != 0) {
                     // red channel for occlusion
@@ -539,7 +680,7 @@ int main(int argc, char** argv) {
                 }
 
                 float ao = 1.0f;
-                if((flags & MetalFeatures_OcclusionTexture) != 0) {
+                if((flags & MaterialFeatures_OcclusionTexture) != 0) {
                     ao = texture(occlusionTexture, vTexcoord0).r;
                 }
 
@@ -584,7 +725,9 @@ int main(int argc, char** argv) {
                     float fr = f0 + (1 - f0) * pow(1 - abs(HdotV), 5);
                     vec3 fresnel_mix = mix(diffuse_brdf, vec3(specular_brdf), fr);
 
-                    vec3 material_color = emissive + mix(fresnel_mix, conductor_fresnel, metalness);
+                    vec3 material_color = mix(fresnel_mix, conductor_fresnel, metalness);
+
+                    material_color = emissive + mix(material_color, material_color * ao, occlusion_factor);
 
                     frag_color = vec4(encode_srgb(material_color), base_color.a);
                 } else {
@@ -708,9 +851,9 @@ int main(int argc, char** argv) {
                 BufferResource& indices_buffer_gpu = buffers[indices_accessor.buffer_view];
                 mesh_draw.index_buffer = indices_buffer_gpu.handle;
                 mesh_draw.index_offset = indices_accessor.byte_offset== glTF::INVALID_INT_VALUE ? 0 : indices_accessor.byte_offset;
-                mesh_draw.count = indices_accessor.count;
+                mesh_draw.primitive_count = indices_accessor.count;
 
-                PASSERT((mesh_draw.count % 3) == 0);
+                PASSERT((mesh_draw.primitive_count % 3) == 0);
 
                 i32 position_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "POSITION");
                 i32 tangent_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "TANGENT");
@@ -751,7 +894,7 @@ int main(int argc, char** argv) {
                     normals_array.init(allocator, vertex_count, vertex_count);
                     memset(normals_array.data, 0, normals_array.size * sizeof(vec3s));
 
-                    u32 index_count = mesh_draw.count;
+                    u32 index_count = mesh_draw.primitive_count;
                     for(u32 index = 0; index < index_count; index += 3) {
                         u32 i0 = indices_accessor.component_type == glTF::Accessor::UNSIGNED_INT ? index_data_32[index]  : index_data_16[index];
                         u32 i1 = indices_accessor.component_type == glTF::Accessor::UNSIGNED_INT ? index_data_32[index + 1]  : index_data_16[index + 1];
@@ -880,40 +1023,76 @@ int main(int argc, char** argv) {
 
                 if(material.occlusion_texture != nullptr) {
                     glTF::Texture& occlusion_texture = scene.textures[material.occlusion_texture->index];
-                    TextureResource& occlusion_texture_gpu = images[occlusion_texture.source];
-                    SamplerResource& occlusion_sampler_gpu = samplers[occlusion_texture.sampler];
 
-                    ds_creation.texture_sampler(occlusion_texture_gpu.handle, occlusion_sampler_gpu.handle, 2);
+                    TextureResource& occlusion_texture_gpu = images[occlusion_texture.source];
+
+                    SamplerHandle sampler_handle = dummy_sampler;
+                    if(occlusion_texture.sampler != glTF::INVALID_INT_VALUE) {
+                        sampler_handle = samplers[occlusion_texture.sampler].handle;
+                    }
+
+                    ds_creation.texture_sampler(occlusion_texture_gpu.handle, sampler_handle, 4);
+
+                    mesh_draw.material_data.occlusion_factor = material.occlusion_texture->strength != glTF::INVALID_FLOAT_VALUE ? material.occlusion_texture->strength : 1.0f;
+                    mesh_draw.material_data.flags |= MaterialFeatures_OcclusionTexture;
                 } else {
-                    continue;
+                    mesh_draw.material_data.occlusion_factor = 1.0f;
+                    ds_creation.texture_sampler(dummy_texture, dummy_sampler, 4);
+                }
+
+                if(material.emissive_factor_count != 0) {
+                    mesh_draw.material_data.emissive_factor = vec3s {
+                        material.emissive_factor[0],
+                        material.emissive_factor[1],
+                        material.emissive_factor[2],
+                    };
+                }
+
+                if(material.emissive_texture != nullptr) {
+                    glTF::Texture& emissive_texture = scene.textures[material.emissive_texture->index];
+
+                    TextureResource& emissive_texture_gpu = images[emissive_texture.source];
+
+                    SamplerHandle sampler_handle = dummy_sampler;
+                    if(emissive_texture.sampler != glTF::INVALID_INT_VALUE) {
+                        sampler_handle = samplers[emissive_texture.sampler].handle;
+                    }
+
+                    ds_creation.texture_sampler(emissive_texture_gpu.handle, sampler_handle, 5);
+
+                    mesh_draw.material_data.flags |= MaterialFeatures_EmissiveTexture;
+                } else {
+                    ds_creation.texture_sampler(dummy_texture, dummy_sampler, 5);
                 }
 
                 if(material.normal_texture != nullptr) {
                     glTF::Texture& normal_texture = scene.textures[material.normal_texture->index];
                     TextureResource& normal_texture_gpu = images[normal_texture.source];
-                    SamplerResource& normal_sampler_gpu = samplers[normal_texture.sampler];
 
-                    ds_creation.texture_sampler(normal_texture_gpu.handle, normal_sampler_gpu.handle, 3);
+                    SamplerHandle sampler_handle = dummy_sampler;
+                    if(normal_texture.sampler != glTF::INVALID_INT_VALUE) {
+                        sampler_handle = samplers[normal_texture.sampler].handle;
+                    }
+
+                    ds_creation.texture_sampler(normal_texture_gpu.handle, sampler_handle, 6);
+
+                    mesh_draw.material_data.flags |= MaterialFeatures_NormalTexture;
                 } else {
-                    continue;
+                    ds_creation.texture_sampler(dummy_texture, dummy_sampler, 6);
                 }
 
-                buffer_creation.reset().set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ResourceUsageType::Dynamic, sizeof(MaterialData)).set_name("material");
-                mesh_draw.material_buffer = gpu.create_buffer(buffer_creation);
-                ds_creation.buffer(mesh_draw.material_buffer, 4);
-
-                mesh_draw.count = indices_accessor.count;
-
                 mesh_draw.descriptor_set = gpu.create_descriptor_set(ds_creation);
-
                 mesh_draws.push(mesh_draw);
             }
 
         }
 
+        node_parents.shutdown();
+        node_stack.shutdown();
+        node_matrix.shutdown();
+
         rx = 0.0f;
         ry = 0.0f;
-
     }
 
     for(u32 buffer_index = 0; buffer_index < scene.buffers_count; buffer_index++) {
@@ -931,7 +1110,7 @@ int main(int argc, char** argv) {
     f32 yaw = 0.0f;
     f32 pitch = 0.0f;
 
-    float model_scale = 0.008f;
+    float model_scale = 1.0f;
 
     int frame = 0;
 
@@ -968,6 +1147,7 @@ int main(int argc, char** argv) {
         }
         ImGui::End();
 
+        mat4s global_model = {};
         {
             // Update rotating cube data
             MapBufferParameters cb_map = { cube_cb, 0, 0 };
@@ -1023,12 +1203,11 @@ int main(int argc, char** argv) {
                 mat4s rym = glms_rotate_make(glm_rad(45.0f), vec3s{0.0f, 1.0f, 0.0f});
 
                 mat4s sm = glms_scale_make(vec3s{model_scale, model_scale, model_scale});
-                mat4s model = glms_mat4_mul(rym, sm);
+                global_model = glms_mat4_mul(rym, sm);
 
                 UniformData uniform_data{};
-                uniform_data.vp = view_projection, model;
-                uniform_data.m = model;
-                uniform_data.inverseM = glms_mat4_inv(glms_mat4_transpose(model));
+                uniform_data.vp = view_projection;
+                uniform_data.m = global_model;
                 uniform_data.eye = vec4s {eye.x, eye.y, eye.z, 1.0f};
                 uniform_data.light = vec4s {2.0f, 2.0f, 0.0f, 1.0f};
 
@@ -1052,6 +1231,8 @@ int main(int argc, char** argv) {
             for(u32 mesh_index = 0; mesh_index < mesh_draws.size; mesh_index++) {
                 MeshDraw mesh_draw = mesh_draws[mesh_index];
 
+                mesh_draw.material_data.model_inv = glms_mat4_inv(glms_mat4_transpose(glms_mat4_mul(global_model, mesh_draw.material_data.model)));
+
                 MapBufferParameters material_map = { mesh_draw.material_buffer, 0, 0 };
                 MaterialData* material_buffer_data = (MaterialData*) gpu.map_buffer(material_map);
 
@@ -1060,13 +1241,24 @@ int main(int argc, char** argv) {
                 gpu.unmap_buffer(material_map);
 
                 gpu_commands->bind_vertex_buffer(mesh_draw.position_buffer, 0, mesh_draw.position_offset);
-                gpu_commands->bind_vertex_buffer(mesh_draw.tangent_buffer, 1, mesh_draw.tangent_offset);
                 gpu_commands->bind_vertex_buffer(mesh_draw.normal_buffer, 2, mesh_draw.normal_offset);
-                gpu_commands->bind_vertex_buffer(mesh_draw.texcoord_buffer, 3, mesh_draw.texcoord_offset);
+
+                if(mesh_draw.material_data.flags & MaterialFeatures_TangentVertexAttribute) {
+                    gpu_commands->bind_vertex_buffer(mesh_draw.tangent_buffer, 1, mesh_draw.tangent_offset);
+                } else {
+                    gpu_commands->bind_vertex_buffer(dummy_attribute_buffer, 1, 0);
+                }
+
+                if(mesh_draw.material_data.flags & MaterialFeatures_TexcoordVertexAttribute) {
+                    gpu_commands->bind_vertex_buffer(mesh_draw.texcoord_buffer, 3, mesh_draw.texcoord_offset);
+                } else {
+                    gpu_commands->bind_vertex_buffer(dummy_attribute_buffer, 3, 0);
+                }
+
                 gpu_commands->bind_index_buffer(mesh_draw.index_buffer, mesh_draw.index_offset, mesh_draw.index_type);
                 gpu_commands->bind_descriptor_set(&mesh_draw.descriptor_set, 1, nullptr, 0);
 
-                gpu_commands->draw_indexed(TopologyType::Triangle, mesh_draw.count, 1, 0, 0, 0);
+                gpu_commands->draw_indexed(TopologyType::Triangle, mesh_draw.primitive_count, 1, 0, 0, 0);
             }
 
             imgui->render(*gpu_commands);
@@ -1092,6 +1284,15 @@ int main(int argc, char** argv) {
         gpu.destroy_descriptor_set(mesh_draw.descriptor_set);
         gpu.destroy_buffer(mesh_draw.material_buffer);
     }
+
+    for(u32 mi = 0; mi < custom_mesh_buffers.size; mi++) {
+        gpu.destroy_buffer(custom_mesh_buffers[mi]);
+    }
+    custom_mesh_buffers.shutdown();
+
+    gpu.destroy_buffer(dummy_attribute_buffer);
+    gpu.destroy_texture(dummy_texture);
+    gpu.destroy_sampler(dummy_sampler);
 
     mesh_draws.shutdown();
 

@@ -265,6 +265,11 @@ namespace puffin {
         uint32_t                vulkan_queue_family;
         VkDescriptorPool        vulkan_descriptor_pool;
 
+        // Bindless
+        VkDescriptorPool        vulkan_bindless_descriptor_pool;
+        VkDescriptorSetLayout   vulkan_bindless_descriptor_set_layout;
+        VkDescriptorSet         vulkan_bindless_descriptor_set;
+
         // Swapchain
         VkImage                 vulkan_swapchain_images[k_max_swapchain_images];
         VkImageView             vulkan_swapchain_image_views[k_max_swapchain_images];
@@ -298,6 +303,9 @@ namespace puffin {
         // These are dynamic - so that workload can be handled easily
         Array<ResourceUpdate>   resource_deletion_queue;
         Array<DescriptorSetUpdate>  descriptor_set_updates;
+
+        // Bindless
+        Array<ResourceUpdate>   texture_to_update_bindless;
 
         f32                     gpu_timestamp_frequency;
         bool                    gpu_timestamp_reset             = true;
