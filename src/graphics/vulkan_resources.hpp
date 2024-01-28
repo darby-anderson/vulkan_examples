@@ -475,6 +475,7 @@ struct ResourceUpdate {
     ResourceDeletionType::Enum type;
     ResourceHandle handle;
     u32 current_frame;
+    u32 deleting;
 };
 
 // Resources

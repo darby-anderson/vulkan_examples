@@ -593,6 +593,7 @@ void GpuDevice::init(const DeviceCreation& creation) {
 
     resource_deletion_queue.init(allocator, 16);
     descriptor_set_updates.init(allocator, 16);
+    texture_to_update_bindless.init(allocator, 16);
 
     // Init primitive resources
     SamplerCreation sc{};
@@ -777,6 +778,10 @@ void GpuDevice::shutdown() {
 
     vmaDestroyAllocator(vma_allocator);
 
+    texture_to_update_bindless.shutdown();
+    resource_deletion_queue.shutdown();
+    descriptor_set_updates.shutdown();
+
     pipelines.shutdown();
     buffers.shutdown();
     shaders.shutdown();
@@ -925,7 +930,6 @@ static void vulkan_create_texture(GpuDevice& gpu, const TextureCreation& creatio
         ResourceUpdate resource_update { ResourceDeletionType::Texture, texture->handle.index, gpu.current_frame };
         gpu.texture_to_update_bindless.push(resource_update);
     }
-
 }
 
 TextureHandle GpuDevice::create_texture(const TextureCreation& creation) {
@@ -2671,6 +2675,55 @@ void GpuDevice::present() {
         }
 
         vkEndCommandBuffer(command_buffer->vk_command_buffer);
+    }
+
+    if(texture_to_update_bindless.size) {
+        // Handle deferred writes to bindless textures.
+        VkWriteDescriptorSet bindless_descriptor_writes[k_max_bindless_resources];
+        VkDescriptorImageInfo bindless_image_info[k_max_bindless_resources];
+
+        Texture* vk_dummy_texture = access_texture(dummy_texture);
+
+        u32 current_write_index = 0;
+        for(u32 it = texture_to_update_bindless.size - 1; it >= 0; it--) {
+            ResourceUpdate& texture_to_update = texture_to_update_bindless[it];
+
+            Texture* texture = access_texture({ texture_to_update.handle });
+            VkWriteDescriptorSet& descriptor_write = bindless_descriptor_writes[current_write_index];
+            descriptor_write = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+            descriptor_write.descriptorCount - 1;
+            descriptor_write.dstArrayElement = texture_to_update.handle;
+            descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptor_write.dstSet = vulkan_bindless_descriptor_set;
+            descriptor_write.dstBinding = k_bindless_texture_binding;
+
+            PASSERT(texture->handle.index == texture_to_update.handle);
+
+            Sampler* vk_default_sampler = access_sampler(default_sampler);
+            VkDescriptorImageInfo& descriptor_image_info = bindless_image_info[current_write_index];
+
+            if(texture->sampler != nullptr) {
+                descriptor_image_info.sampler = texture->sampler->vk_sampler;
+            } else {
+                descriptor_image_info.sampler = vk_default_sampler->vk_sampler;
+            }
+
+            descriptor_image_info.imageView = texture->vk_format != VK_FORMAT_UNDEFINED ? texture->vk_image_view : vk_dummy_texture->vk_image_view;
+            descriptor_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            descriptor_write.pImageInfo = &descriptor_image_info;
+
+            texture_to_update.current_frame = u32_max;
+
+            texture_to_update_bindless.delete_swap(it);
+
+            current_write_index++;
+        }
+
+        if(current_write_index) {
+            vkUpdateDescriptorSets(vulkan_device, current_write_index, bindless_descriptor_writes, 0, nullptr);
+        }
+
     }
 
     // Submit command buffers
