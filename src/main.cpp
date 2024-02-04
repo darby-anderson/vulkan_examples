@@ -215,10 +215,172 @@ static void scene_load_from_gltf(cstring filename, puffin::Renderer& renderer, p
     for(u32 image_index = 0; image_index < scene.gltf_scene.images_count; image_index++) {
         glTF::Image& image = scene.gltf_scene.images[image_index];
         TextureResource* tr = renderer.create_texture(image.uri.data, image.uri.data, true);
+        PASSERT(tr != nullptr);
 
-        // START HERE
+        scene.images.push(*tr);
     }
 
+    StringBuffer resource_name_buffer;
+    resource_name_buffer.init(allocator, 4096);
+
+    // Load all samplers
+    scene.samplers.init(allocator, scene.gltf_scene.samplers_count);
+
+    for(u32 sampler_index = 0; sampler_index < scene.gltf_scene.samplers_count; sampler_index++) {
+        glTF::Sampler& sampler = scene.gltf_scene.samplers[sampler_index];
+
+        char* sampler_name = resource_name_buffer.append_use_f("sampler_%u", sampler_index);
+
+        SamplerCreation creation;
+        switch(sampler.min_filter) {
+            case glTF::Sampler::NEAREST:
+                creation.min_filter = VK_FILTER_NEAREST;
+                break;
+            case glTF::Sampler::LINEAR:
+                creation.min_filter = VK_FILTER_LINEAR;
+                break;
+            case glTF::Sampler::LINEAR_MIPMAP_NEAREST:
+                creation.min_filter = VK_FILTER_LINEAR;
+                creation.mip_filter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+                break;
+            case glTF::Sampler::LINEAR_MIPMAP_LINEAR:
+                creation.min_filter = VK_FILTER_LINEAR;
+                creation.mip_filter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+                break;
+            case glTF::Sampler::NEAREST_MIPMAP_NEAREST:
+                creation.min_filter = VK_FILTER_NEAREST;
+                creation.mip_filter = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+                break;
+            case glTF::Sampler::NEAREST_MIPMAP_LINEAR:
+                creation.min_filter = VK_FILTER_NEAREST;
+                creation.mip_filter = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+                break;
+        }
+
+        creation.mag_filter = sampler.mag_filter == glTF::Sampler::Filter::LINEAR ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
+
+        switch(sampler.wrap_s) {
+            case glTF::Sampler::CLAMP_TO_EDGE:
+                creation.address_mode_u = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+                break;
+            case glTF::Sampler::MIRRORED_REPEAT:
+                creation.address_mode_u = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+                break;
+            case glTF::Sampler::REPEAT:
+                creation.address_mode_u = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+                break;
+        }
+
+        switch(sampler.wrap_t) {
+            case glTF::Sampler::CLAMP_TO_EDGE:
+                creation.address_mode_v = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+                break;
+            case glTF::Sampler::MIRRORED_REPEAT:
+                creation.address_mode_v = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+                break;
+            case glTF::Sampler::REPEAT:
+                creation.address_mode_v = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+                break;
+        }
+
+        creation.name = sampler_name;
+
+        SamplerResource* sr = renderer.create_sampler(creation);
+        PASSERT(sr != nullptr);
+
+        scene.samplers.push(*sr);
+    }
+
+    // Temp buffer data array
+    puffin::Array<void*> buffers_data;
+    buffers_data.init(allocator, scene.gltf_scene.buffers_count);
+
+    for(u32 buffer_index = 0; buffer_index < scene.gltf_scene.buffers_count; buffer_index++) {
+        glTF::Buffer& buffer = scene.gltf_scene.buffers[buffer_index];
+
+        FileReadResult buffer_data = file_read_binary(buffer.uri.data, allocator);
+        buffers_data.push(buffer_data.data);
+    }
+
+    scene.buffers.init(allocator, scene.gltf_scene.buffer_views_count);
+
+    for(u32 buffer_view_index = 0; buffer_view_index < scene.gltf_scene.buffer_views_count; buffer_view_index++) {
+        glTF::BufferView& buffer_view = scene.gltf_scene.buffer_views[buffer_view_index];
+
+        i32 offset = buffer_view.byte_offset;
+        if(offset == glTF::INVALID_INT_VALUE) {
+            offset = 0;
+        }
+
+        u8* data = (u8*) buffers_data[buffer_view.buffer] + offset;
+
+        VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+        char* buffer_name = buffer_view.name.data;
+        if(buffer_name == nullptr) {
+            buffer_name = resource_name_buffer.append_use_f("buffer_%u", buffer_view_index);
+        }
+
+        BufferResource* br = renderer.create_buffer(flags, ResourceUsageType::Immutable, buffer_view.byte_length, data, buffer_name);
+        PASSERT(br != nullptr);
+
+        scene.buffers.push(*br);
+    }
+
+    for(u32 buffer_index = 0; buffer_index < scene.gltf_scene.buffers_count; buffer_index++) {
+        void* buffer = buffers_data[buffer_index];
+        allocator->deallocate(buffer);
+    }
+    buffers_data.shutdown();
+
+    resource_name_buffer.shutdown();
+
+    scene.mesh_draws.init(allocator, scene.gltf_scene.meshes_count);
+}
+
+static void scene_free_gpu_resources(Scene& scene, puffin::Renderer& renderer) {
+    puffin::GpuDevice& gpu = *renderer.gpu;
+
+    for(u32 mesh_index = 0; mesh_index < scene.mesh_draws.size; mesh_index++) {
+        MeshDraw& mesh_draw = scene.mesh_draws[mesh_index];
+        gpu.destroy_buffer(mesh_draw.material_buffer);
+    }
+
+    scene.mesh_draws.shutdown();
+}
+
+static void scene_unload(Scene& scene, puffin::Renderer& renderer) {
+    puffin::GpuDevice& gpu = *renderer.gpu;
+
+    // Free scene buffers
+    scene.samplers.shutdown();
+    scene.images.shutdown();
+    scene.buffers.shutdown();
+
+    puffin::gltf_free(scene.gltf_scene);
+}
+
+static int mesh_material_compare(const void* a, const void* b) {
+    const MeshDraw* mesh_a = (const MeshDraw*) a;
+    const MeshDraw* mesh_b = (const MeshDraw*) b;
+
+    if(mesh_a->material->render_index < mesh_b->material->render_index) return -1;
+    if(mesh_a->material->render_index > mesh_b->material->render_index) return 1;
+
+    return 0;
+}
+
+static void get_mesh_vertex_buffer(Scene& scene, i32 accessor_index, puffin::BufferHandle& out_buffer_handle, u32& out_buffer_offset) {
+    using namespace puffin;
+
+    if(accessor_index != -1) {
+        glTF::Accessor& buffer_accessor = scene.gltf_scene.accessors[accessor_index];
+        glTF::BufferView& buffer_view = scene.gltf_scene.buffer_views[buffer_accessor.buffer_view];
+        BufferResource& buffer_gpu = scene.buffers[buffer_accessor.buffer_view];
+
+        out_buffer_handle = buffer_gpu.handle;
+        out_buffer_offset = buffer_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : buffer_accessor.byte_offset;
+    }
 }
 
 static bool get_mesh_material(puffin::Renderer& renderer, Scene& scene, puffin::glTF::Material& material, MeshDraw& mesh_draw) {
@@ -231,14 +393,14 @@ static bool get_mesh_material(puffin::Renderer& renderer, Scene& scene, puffin::
         if (material.pbr_metallic_roughness->base_color_factor_count != 0) {
             PASSERT(material.pbr_metallic_roughness->base_color_factor_count == 4);
 
-            mesh_draw.material_data.base_color_factor = {
+            mesh_draw.base_color_factor = {
                     material.pbr_metallic_roughness->base_color_factor[0],
                     material.pbr_metallic_roughness->base_color_factor[1],
                     material.pbr_metallic_roughness->base_color_factor[2],
                     material.pbr_metallic_roughness->base_color_factor[3],
             };
         } else {
-            mesh_draw.material_data.base_color_factor = {1.0f, 1.0f, 1.0f, 1.0f};
+            mesh_draw.base_color_factor = {1.0f, 1.0f, 1.0f, 1.0f};
         }
 
         if (material.pbr_metallic_roughness->roughness_factor != glTF::INVALID_FLOAT_VALUE) {
@@ -336,10 +498,8 @@ int main(int argc, char** argv) {
 
     using namespace puffin;
 
-    time_service_init();
 
     MemoryService::instance()->init(nullptr);
-
     Allocator* allocator = &MemoryService::instance()->system_allocator;
 
     StackAllocator scratch_allocator;
@@ -375,6 +535,11 @@ int main(int argc, char** argv) {
     ImGuiService* imgui = ImGuiService::instance();
     ImGuiServiceConfiguration imgui_config {&gpu, window.platform_handle};
     imgui->init(&imgui_config);
+
+    // START HERE!!
+    GameCamera game_cam;
+
+    time_service_init();
 
     Directory cwd{};
     directory_current(&cwd);
