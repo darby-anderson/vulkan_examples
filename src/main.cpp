@@ -215,6 +215,8 @@ static void scene_load_from_gltf(cstring filename, puffin::Renderer& renderer, p
     for(u32 image_index = 0; image_index < scene.gltf_scene.images_count; image_index++) {
         glTF::Image& image = scene.gltf_scene.images[image_index];
         TextureResource* tr = renderer.create_texture(image.uri.data, image.uri.data, true);
+
+        // START HERE
     }
 
 }
