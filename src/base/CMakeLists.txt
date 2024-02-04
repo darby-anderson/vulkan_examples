@@ -1,6 +1,4 @@
 
-# set(LIBRARY_OUTPUT_DIRECTORY)
-
 add_library(
 	base
 	"file_system.hpp"
@@ -35,7 +33,12 @@ add_library(
 	"time.cpp"
 )
 
+# necessary libraries
 target_link_libraries(base tlsf)
 
+# necessary header
 target_include_directories(base PUBLIC ../../deps/wyhash)
 target_include_directories(base PUBLIC ../../deps/json/single_include/nlohmann)
+
+# config
+target_include_directories(base PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

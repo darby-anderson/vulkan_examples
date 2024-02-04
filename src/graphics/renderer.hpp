@@ -45,6 +45,50 @@ struct SamplerResource : public puffin::Resource {
 
 };
 
+// Material/Shaders //////////////
+
+struct ProgramPass {
+    PipelineHandle              pipeline;
+    DescriptorSetLayoutHandle   descriptor_set_layout;
+};
+
+struct ProgramCreation {
+    PipelineCreation            pipeline_creation;
+};
+
+struct Program : public puffin::Resource {
+    u32                         get_num_passes() const;
+
+    Array<ProgramPass>          passes;
+
+    u32                         pool_index;
+
+    static constexpr cstring    k_type = "puffin_program_type";
+    static u64                  k_type_hash;
+};
+
+struct MaterialCreation {
+    MaterialCreation&           reset();
+    MaterialCreation&           set_program(Program* program);
+    MaterialCreation&           set_name(cstring name);
+    MaterialCreation&           set_render_index(u32 render_index);
+
+    Program*                    program     = nullptr;
+    cstring                     name        = nullptr;
+    u32                         render_index    = ~0u;
+};
+
+struct Material : public puffin::Resource {
+    Program*                    program;
+
+    u32                         render_index;
+
+    u32                         pool_index;
+
+    static constexpr cstring    k_type = "puffin_material_type";
+    static u64                  k_type_hash;
+};
+
 // Resource Cache ///////
 
 struct ResourceCache {
@@ -54,6 +98,8 @@ struct ResourceCache {
     FlatHashMap<u64, TextureResource*>  textures;
     FlatHashMap<u64, BufferResource*>   buffers;
     FlatHashMap<u64, SamplerResource*>  samplers;
+    FlatHashMap<u64, Program*>          programs;
+    FlatHashMap<u64, Material*>         materials;
 };
 
 // Renderer ////////////////
@@ -86,13 +132,24 @@ struct Renderer : public Service {
     BufferResource*         create_buffer(VkBufferUsageFlags type, ResourceUsageType::Enum usage, u32 size, void* data, cstring name);
 
     TextureResource*        create_texture(const TextureCreation& creation);
-    TextureResource*        create_texture(cstring name, cstring filename);
+    TextureResource*        create_texture(cstring name, cstring filename, bool create_mipmaps);
 
     SamplerResource*        create_sampler(const SamplerCreation& creation);
+
+    Program*                create_program(const ProgramCreation& creation);
+
+    Material*               create_material(const MaterialCreation& creation);
+    Material*               create_material(Program* program, cstring name);
+
+    // Draw
+    PipelineHandle          get_pipeline(Material* material);
+    DescriptorSetHandle     create_descriptor_set(CommandBuffer* gpu_commands, Material* material, DescriptorSetCreation& ds_creation);
 
     void                    destroy_buffer(BufferResource* buffer);
     void                    destroy_texture(TextureResource* buffer);
     void                    destroy_sampler(SamplerResource* buffer);
+    void                    destroy_program(Program* program);
+    void                    destroy_material(Material* material);
 
     // Update resource
     void*                   map_buffer(BufferResource* buffer, u32 offset = 0, u32 size = 0);
@@ -102,6 +159,8 @@ struct Renderer : public Service {
     ResourcePoolTyped<TextureResource> textures;
     ResourcePoolTyped<BufferResource> buffers;
     ResourcePoolTyped<SamplerResource> samplers;
+    ResourcePoolTyped<Program> programs;
+    ResourcePoolTyped<Material> materials;
 
     ResourceCache           resource_cache;
 

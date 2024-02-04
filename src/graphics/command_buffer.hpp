@@ -21,6 +21,7 @@ struct CommandBuffer {
     void                    bind_vertex_buffer(BufferHandle buffer_handle, u32 binding, u32 offset);
     void                    bind_index_buffer(BufferHandle buffer_handle, u32 offset, VkIndexType index_type);
     void                    bind_descriptor_set(DescriptorSetHandle* descriptor_set_handles, u32 num_lists, u32* offsets, u32 num_offsets);
+    void                    bind_local_descriptor_set(DescriptorSetHandle* descriptor_set_handles, u32 num_lists, u32* offsets, u32 num_offsets);
 
     void                    set_viewport(const Viewport* viewport);
     void                    set_scissors(const Rect2DInt* rect); // sets what part of viewport is being rendered on
@@ -50,7 +51,7 @@ struct CommandBuffer {
 
     VkCommandBuffer         vk_command_buffer;
 
-    GpuDevice*              device;
+    GpuDevice*              gpu_device;
 
     VkDescriptorSet         vk_descriptor_sets[16];
 

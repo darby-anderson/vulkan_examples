@@ -330,7 +330,10 @@ namespace puffin {
         const Sampler*          access_sampler(SamplerHandle sampler) const;
 
         DescriptorSetLayout*    access_descriptor_set_layout(DescriptorSetLayoutHandle layout);
-        const DescriptorSetLayout*    access_descriptor_set_layout(DescriptorSetLayoutHandle layout) const;
+        const DescriptorSetLayout*      access_descriptor_set_layout(DescriptorSetLayoutHandle layout) const;
+
+        DescriptorSetLayoutHandle       access_descriptor_set_layout_handle(PipelineHandle pipeline_handle, int layout_index);
+        DescriptorSetLayoutHandle       access_descriptor_set_layout_handle(PipelineHandle pipeline_handle, int layout_index) const;
 
         DescriptorSet*          access_descriptor_set(DescriptorSetHandle set);
         const DescriptorSet*    access_descriptor_set(DescriptorSetHandle set) const;

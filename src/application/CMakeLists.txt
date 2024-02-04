@@ -21,5 +21,9 @@ target_link_libraries(
         glfw
 )
 
+# internal headers
 target_include_directories(application PUBLIC ../base)
 target_include_directories(application PUBLIC ../graphics)
+
+# config
+target_include_directories(application PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

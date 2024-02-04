@@ -38,14 +38,97 @@
 static const u16 INVALID_TEXTURE_INDEX = ~0u;
 
 // Rotating cube test
-puffin::BufferHandle                cube_vb;
-puffin::BufferHandle                cube_ib;
-puffin::PipelineHandle              cube_pipeline;
-puffin::BufferHandle                cube_cb;
-puffin::DescriptorSetHandle         cube_rl;
-puffin::DescriptorSetLayoutHandle   cube_dsl;
+puffin::BufferHandle                scene_cb;
 
-f32 rx, ry;
+struct MeshDraw {
+    puffin::Material*       material;
+
+    puffin::BufferHandle    index_buffer;
+    puffin::BufferHandle    position_buffer;
+    puffin::BufferHandle    tangent_buffer;
+    puffin::BufferHandle    normal_buffer;
+    puffin::BufferHandle    texcoord_buffer;
+    puffin::BufferHandle    material_buffer;
+
+    u32                     index_offset;
+    u32                     position_offset;
+    u32                     tangent_offset;
+    u32                     normal_offset;
+    u32                     texcoord_offset;
+
+    u32                     primitive_count;
+
+    // indices for bindless textures
+    u16                     diffuse_texture_index;
+    u16                     roughness_texture_index;
+    u16                     normal_texture_index;
+    u16                     occlusion_texture_index;
+
+    vec4s                   base_color_factor;
+    vec4s                   metallic_roughness_occlusion_factor;
+    vec3s                   scale;
+
+    f32                     alpha_cutoff;
+    u32                     flags;
+};
+
+enum DrawFlags {
+    DrawFlags_AlphaMask         = 1 << 0,
+};
+
+struct UniformData {
+    mat4s m;
+    mat4s vp;
+    vec4s eye;
+    vec4s light;
+};
+
+struct MeshData {
+    mat4s       m;
+    mat4s       inverseM;
+
+    u32         textures[4]; // diffuse, roughness, normal, occlusion
+    vec4s       base_color_factor;
+    vec4s       metallic_roughness_occlusion_factor; // metallic, roughness, occlusion
+    float       alpha_cutoff;
+    float       padding_[3];
+    u32         flags;
+};
+
+struct GpuEffect {
+    puffin::PipelineHandle  pipeline_cull;
+    puffin::PipelineHandle  pipeline_no_cull;
+};
+
+static void upload_material(MeshData& mesh_data, const MeshDraw& mesh_draw, const f32 global_scale) {
+    mesh_data.textures[0] = mesh_draw.diffuse_texture_index;
+    mesh_data.textures[1] = mesh_draw.roughness_texture_index;
+    mesh_data.textures[2] = mesh_draw.normal_texture_index;
+    mesh_data.textures[3] = mesh_draw.occlusion_texture_index;
+    mesh_data.base_color_factor = mesh_draw.base_color_factor;
+    mesh_data.metallic_roughness_occlusion_factor = mesh_draw.metallic_roughness_occlusion_factor;
+    mesh_data.alpha_cutoff = mesh_draw.alpha_cutoff;
+    mesh_data.flags = mesh_draw.flags;
+
+    mat4s model = glms_scale_make(glms_vec3_mul(mesh_draw.scale, { global_scale, global_scale, -global_scale }));
+    mesh_data.m = model;
+    mesh_data.inverseM = glms_mat4_inv(glms_mat4_transpose(model));
+}
+
+static void draw_mesh(puffin::Renderer& renderer, puffin::CommandBuffer* gpu_commands, MeshDraw& mesh_draw) {
+    // Descriptor set
+    puffin::DescriptorSetCreation ds_creation{};
+    ds_creation.buffer(scene_cb, 0).buffer(mesh_draw.material_buffer, 1);
+    puffin::DescriptorSetHandle descriptor_set = renderer.create_descriptor_set(gpu_commands, mesh_draw.material, ds_creation);
+
+    gpu_commands->bind_vertex_buffer(mesh_draw.position_buffer, 0, mesh_draw.position_offset);
+    gpu_commands->bind_vertex_buffer(mesh_draw.tangent_buffer, 1, mesh_draw.tangent_offset);
+    gpu_commands->bind_vertex_buffer(mesh_draw.normal_buffer, 2, mesh_draw.normal_offset);
+    gpu_commands->bind_index_buffer(mesh_draw.index_buffer, mesh_draw.index_offset, VkIndexType::VK_INDEX_TYPE_UINT16);
+    gpu_commands->bind_local_descriptor_set(&descriptor_set, 1, nullptr, 0);
+
+    gpu_commands->draw_indexed(TopologyType::Triangle, mesh_draw.primitive_count, 1, 0, 0, 0);
+}
 
 enum MaterialFeatures {
     MaterialFeatures_ColorTexture       = 1 << 0,
@@ -69,63 +152,6 @@ struct alignas(16) MaterialData {
     f32     roughness_factor;
     f32     occlusion_factor;
     u32     flags;
-};
-
-struct MeshDraw {
-    puffin::Material*       material;
-
-    puffin::BufferHandle    index_buffer;
-    puffin::BufferHandle    position_buffer;
-    puffin::BufferHandle    tangent_buffer;
-    puffin::BufferHandle    normal_buffer;
-    puffin::BufferHandle    texcoord_buffer;
-
-    puffin::BufferHandle    material_buffer;
-    MaterialData            material_data;
-
-    u32                     index_offset;
-    u32                     position_offset;
-    u32                     tangent_offset;
-    u32                     normal_offset;
-    u32                     texcoord_offset;
-
-    u32                     primitive_count;
-
-    // indices for bindless textures
-    u16                     diffuse_texture_index;
-    u16                     roughness_texture_index;
-    u16                     normal_texture_index;
-    u16                     occlusion_texture_index;
-
-    vec4s                   base_color_factor;
-    vec4s                   metallic_roughness_occlusion_factor;
-    vec4s                   scale;
-
-    f32                     alpha_cutoff;
-    u32                     flags;
-};
-
-enum DrawFlags {
-    DrawFlags_AlphaMask         1 << 0,
-};
-
-struct UniformData {
-    mat4s m;
-    mat4s vp;
-    vec4s eye;
-    vec4s light;
-};
-
-struct MeshData {
-    mat4s       m;
-    mat4s       inverseM;
-
-    u32         textures[4]; // diffuse, roughness, normal, occlusion
-    vec4s       base_color_factor;
-    vec4s       metallic_roughness_occlusion_factor; // metallic, roughness, occlusion
-    float       alpha_cutoff;
-    float       padding_[3];
-    u32         flags;
 };
 
 struct Transform {
@@ -176,6 +202,22 @@ struct Scene {
 
     puffin::glTF::glTF              gltf_scene;
 };
+
+static void scene_load_from_gltf(cstring filename, puffin::Renderer& renderer, puffin::Allocator* allocator, Scene& scene) {
+
+    using namespace puffin;
+
+    scene.gltf_scene = gltf_load_file(filename);
+
+    // Load all textures
+    scene.images.init(allocator, scene.gltf_scene.images_count);
+
+    for(u32 image_index = 0; image_index < scene.gltf_scene.images_count; image_index++) {
+        glTF::Image& image = scene.gltf_scene.images[image_index];
+        TextureResource* tr = renderer.create_texture(image.uri.data, image.uri.data, true);
+    }
+
+}
 
 static bool get_mesh_material(puffin::Renderer& renderer, Scene& scene, puffin::glTF::Material& material, MeshDraw& mesh_draw) {
     using namespace puffin;

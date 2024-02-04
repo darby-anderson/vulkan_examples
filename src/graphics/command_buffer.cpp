@@ -28,7 +28,7 @@ void CommandBuffer::terminate() {
 void CommandBuffer::bind_pass(RenderPassHandle render_pass_handle) {
     is_recording = true;
 
-    RenderPass* render_pass = device->access_render_pass(render_pass_handle);
+    RenderPass* render_pass = gpu_device->access_render_pass(render_pass_handle);
 
     // Begin/End render pass are valid only for graphics render passes
     if(current_render_pass && (current_render_pass->type != RenderPassType::Compute)
@@ -39,7 +39,7 @@ void CommandBuffer::bind_pass(RenderPassHandle render_pass_handle) {
     if(render_pass != current_render_pass && (render_pass->type != RenderPassType::Compute)) {
         VkRenderPassBeginInfo render_pass_begin {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
         render_pass_begin.framebuffer = render_pass->type == RenderPassType::Swapchain ?
-                device->vulkan_swapchain_framebuffers[device->vulkan_image_index] : render_pass->vk_framebuffer;
+                                        gpu_device->vulkan_swapchain_framebuffers[gpu_device->vulkan_image_index] : render_pass->vk_framebuffer;
         render_pass_begin.renderPass = render_pass->vk_render_pass;
 
         render_pass_begin.renderArea.offset = {0, 0};
@@ -55,7 +55,7 @@ void CommandBuffer::bind_pass(RenderPassHandle render_pass_handle) {
 }
 
 void CommandBuffer::bind_pipeline(PipelineHandle pipeline_handle) {
-    Pipeline* pipeline = device->access_pipeline(pipeline_handle);
+    Pipeline* pipeline = gpu_device->access_pipeline(pipeline_handle);
     vkCmdBindPipeline(vk_command_buffer, pipeline->vk_bind_point, pipeline->vk_pipeline);
 
     // Cache pipeline
@@ -63,12 +63,12 @@ void CommandBuffer::bind_pipeline(PipelineHandle pipeline_handle) {
 }
 
 void CommandBuffer::bind_vertex_buffer(BufferHandle buffer_handle, u32 binding, u32 offset) {
-    Buffer* buffer = device->access_buffer(buffer_handle);
+    Buffer* buffer = gpu_device->access_buffer(buffer_handle);
     VkDeviceSize offsets[] = {offset};
 
     VkBuffer vk_buffer = buffer->vk_buffer;
     if(buffer->parent_buffer.index != k_invalid_index) {
-        Buffer* parent_buffer = device->access_buffer(buffer->parent_buffer);
+        Buffer* parent_buffer = gpu_device->access_buffer(buffer->parent_buffer);
         vk_buffer = parent_buffer->vk_buffer;
         offsets[0] = buffer->global_offset;
     }
@@ -77,12 +77,12 @@ void CommandBuffer::bind_vertex_buffer(BufferHandle buffer_handle, u32 binding, 
 }
 
 void CommandBuffer::bind_index_buffer(BufferHandle buffer_handle, u32 offset_, VkIndexType index_type) {
-    Buffer* buffer = device->access_buffer(buffer_handle);
+    Buffer* buffer = gpu_device->access_buffer(buffer_handle);
 
     VkBuffer vk_buffer = buffer->vk_buffer;
     VkDeviceSize offset = offset_;
     if(buffer->parent_buffer.index != k_invalid_index) {
-        Buffer* parent_buffer = device->access_buffer(buffer->parent_buffer);
+        Buffer* parent_buffer = gpu_device->access_buffer(buffer->parent_buffer);
         vk_buffer = parent_buffer->vk_buffer;
         offset = buffer->global_offset;
     }
@@ -95,7 +95,7 @@ void CommandBuffer::bind_descriptor_set(DescriptorSetHandle* descriptor_set_hand
     num_offsets = 0;
 
     for(u32 l = 0; l < num_lists; l++) {
-        DescriptorSet* descriptor_set = device->access_descriptor_set(descriptor_set_handles[l]);
+        DescriptorSet* descriptor_set = gpu_device->access_descriptor_set(descriptor_set_handles[l]);
         vk_descriptor_sets[l] = descriptor_set->vk_descriptor_set;
 
         // Search for dynamic buffers
@@ -107,13 +107,53 @@ void CommandBuffer::bind_descriptor_set(DescriptorSetHandle* descriptor_set_hand
                 // search for actual buffer offset
                 const u32 resource_index = descriptor_set->bindings[i];
                 ResourceHandle buffer_handle = descriptor_set->resources[resource_index];
-                Buffer* buffer = device->access_buffer({buffer_handle});
+                Buffer* buffer = gpu_device->access_buffer({buffer_handle});
 
                 offsets_cache[num_offsets++] = buffer->global_offset;
             }
         }
+    }
 
-        const u32 k_first_set = 0;
+    const u32 k_first_set = 0;
+    vkCmdBindDescriptorSets(vk_command_buffer, current_pipeline->vk_bind_point, current_pipeline->vk_pipeline_layout,
+                            k_first_set, num_lists, vk_descriptor_sets, num_offsets, offsets_cache);
+
+    if(gpu_device->bindless_supported) {
+        vkCmdBindDescriptorSets(vk_command_buffer, current_pipeline->vk_bind_point, current_pipeline->vk_pipeline_layout,
+                                k_first_set, num_lists, vk_descriptor_sets, num_offsets, offsets_cache);
+    }
+}
+
+void CommandBuffer::bind_local_descriptor_set(DescriptorSetHandle* descriptor_set_handles, u32 num_lists, u32* offsets,
+                                        u32 num_offsets) {
+    u32 offsets_cache[8];
+    num_offsets = 0;
+
+    for(u32 l = 0; l < num_lists; l++) {
+        DescriptorSet* descriptor_set = gpu_device->access_descriptor_set(descriptor_set_handles[l]);
+        vk_descriptor_sets[l] = descriptor_set->vk_descriptor_set;
+
+        // Search for dynamic buffers
+        const DescriptorSetLayout* descriptor_set_layout = descriptor_set->layout;
+        for(u32 i = 0; i < descriptor_set_layout->num_bindings; i++) {
+            const DescriptorBinding& rb = descriptor_set_layout->bindings[i];
+
+            if(rb.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+                // search for actual buffer offset
+                const u32 resource_index = descriptor_set->bindings[i];
+                ResourceHandle buffer_handle = descriptor_set->resources[resource_index];
+                Buffer* buffer = gpu_device->access_buffer({buffer_handle});
+
+                offsets_cache[num_offsets++] = buffer->global_offset;
+            }
+        }
+    }
+
+    const u32 k_first_set = 0;
+    vkCmdBindDescriptorSets(vk_command_buffer, current_pipeline->vk_bind_point, current_pipeline->vk_pipeline_layout,
+                            k_first_set, num_lists, vk_descriptor_sets, num_offsets, offsets_cache);
+
+    if(gpu_device->bindless_supported) {
         vkCmdBindDescriptorSets(vk_command_buffer, current_pipeline->vk_bind_point, current_pipeline->vk_pipeline_layout,
                                 k_first_set, num_lists, vk_descriptor_sets, num_offsets, offsets_cache);
     }
@@ -138,9 +178,9 @@ void CommandBuffer::set_viewport(const Viewport* viewport) {
             vk_viewport.y = current_render_pass->height * 1.f;
             vk_viewport.height = -current_render_pass->height * 1.f;
         } else {
-            vk_viewport.width = device->swapchain_width * 1.f;
-            vk_viewport.y = device->swapchain_height * 1.f;
-            vk_viewport.height = -device->swapchain_height * 1.f;
+            vk_viewport.width = gpu_device->swapchain_width * 1.f;
+            vk_viewport.y = gpu_device->swapchain_height * 1.f;
+            vk_viewport.height = -gpu_device->swapchain_height * 1.f;
         }
         vk_viewport.minDepth = 0.0f;
         vk_viewport.maxDepth = 1.0f;
@@ -159,8 +199,8 @@ void CommandBuffer::set_scissors(const Rect2DInt* rect) {
     } else {
         vk_scissor.offset.x = 0;
         vk_scissor.offset.y = 0;
-        vk_scissor.extent.width = device->swapchain_width;
-        vk_scissor.extent.height = device->swapchain_height;
+        vk_scissor.extent.width = gpu_device->swapchain_width;
+        vk_scissor.extent.height = gpu_device->swapchain_height;
     }
     vkCmdSetScissor(vk_command_buffer, 0, 1, &vk_scissor);
 }
@@ -190,7 +230,7 @@ void CommandBuffer::dispatch(u32 group_x, u32 group_y, u32 group_z) {
 }
 
 void CommandBuffer::draw_indirect(BufferHandle buffer_handle, u32 offset, u32 stride) {
-    Buffer* buffer = device->access_buffer(buffer_handle);
+    Buffer* buffer = gpu_device->access_buffer(buffer_handle);
 
     VkBuffer vk_buffer = buffer->vk_buffer;
     VkDeviceSize vk_offset = offset;
@@ -199,7 +239,7 @@ void CommandBuffer::draw_indirect(BufferHandle buffer_handle, u32 offset, u32 st
 }
 
 void CommandBuffer::draw_indexed_indirect(BufferHandle buffer_handle, u32 offset, u32 stride) {
-    Buffer* buffer = device->access_buffer(buffer_handle);
+    Buffer* buffer = gpu_device->access_buffer(buffer_handle);
 
     VkBuffer vk_buffer = buffer->vk_buffer;
     VkDeviceSize vk_offset = offset;
@@ -208,7 +248,7 @@ void CommandBuffer::draw_indexed_indirect(BufferHandle buffer_handle, u32 offset
 }
 
 void CommandBuffer::dispatch_indirect(BufferHandle buffer_handle, u32 offset) {
-    Buffer* buffer = device->access_buffer(buffer_handle);
+    Buffer* buffer = gpu_device->access_buffer(buffer_handle);
 
     VkBuffer vk_buffer = buffer->vk_buffer;
     VkDeviceSize vk_offset = offset;
@@ -240,7 +280,7 @@ void CommandBuffer::barrier(const ExecutionBarrier& barrier) {
         VkAccessFlags destination_access_flags = VK_ACCESS_NONE_KHR;
 
         for(u32 i = 0; i < barrier.num_image_barriers; i++) {
-            Texture* texture_vulkan = device->access_texture(barrier.image_barriers[i].texture);
+            Texture* texture_vulkan = gpu_device->access_texture(barrier.image_barriers[i].texture);
 
             VkImageMemoryBarrier& vk_barrier = image_barriers[i];
             const bool is_color = !TextureFormat::has_depth_or_stencil(texture_vulkan->vk_format);
@@ -293,7 +333,7 @@ void CommandBuffer::barrier(const ExecutionBarrier& barrier) {
             VkBufferMemoryBarrier& vk_barrier = buffer_memory_barriers[i];
             vk_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-            Buffer* buffer = device->access_buffer(barrier.memory_barriers[i].buffer);
+            Buffer* buffer = gpu_device->access_buffer(barrier.memory_barriers[i].buffer);
 
             vk_barrier.buffer = buffer->vk_buffer;
             vk_barrier.offset = 0;
@@ -380,7 +420,7 @@ void CommandBuffer::barrier(const ExecutionBarrier& barrier) {
     bool has_depth = false;
 
     for(u32 i = 0; i < barrier.num_image_barriers; i++) {
-        Texture* texture_vulkan = device->access_texture(barrier.image_barriers[i].texture);
+        Texture* texture_vulkan = gpu_device->access_texture(barrier.image_barriers[i].texture);
 
         VkImageMemoryBarrier& vk_barrier = image_barriers[i];
         vk_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -419,7 +459,7 @@ void CommandBuffer::barrier(const ExecutionBarrier& barrier) {
         VkBufferMemoryBarrier& vk_barrier = buffer_memory_barriers[i];
         vk_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 
-        Buffer* buffer = device->access_buffer(barrier.memory_barriers[i].buffer);
+        Buffer* buffer = gpu_device->access_buffer(barrier.memory_barriers[i].buffer);
 
         vk_barrier.buffer = buffer->vk_buffer;
         vk_barrier.offset = 0;
@@ -436,23 +476,23 @@ void CommandBuffer::barrier(const ExecutionBarrier& barrier) {
 }
 
 void CommandBuffer::push_marker(const char* name) {
-    device->push_gpu_timestamp(this, name);
+    gpu_device->push_gpu_timestamp(this, name);
 
-    if(!device->debug_utils_extension_present) {
+    if(!gpu_device->debug_utils_extension_present) {
         return;
     }
 
-    device->push_marker(vk_command_buffer, name);
+    gpu_device->push_marker(vk_command_buffer, name);
 }
 
 void CommandBuffer::pop_marker() {
-    device->pop_gpu_timestamp(this);
+    gpu_device->pop_gpu_timestamp(this);
 
-    if(!device->debug_utils_extension_present) {
+    if(!gpu_device->debug_utils_extension_present) {
         return;
     }
 
-    device->pop_marker(vk_command_buffer);
+    gpu_device->pop_marker(vk_command_buffer);
 }
 
 } // namespace puffin

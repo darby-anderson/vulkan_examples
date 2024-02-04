@@ -101,7 +101,7 @@ void CommandBufferRing::init(GpuDevice* gpu_) {
         cmd.commandBufferCount = 1;
         check(vkAllocateCommandBuffers(gpu->vulkan_device, &cmd, &command_buffers[i].vk_command_buffer));
 
-        command_buffers[i].device = gpu;
+        command_buffers[i].gpu_device = gpu;
         command_buffers[i].handle = i;
         command_buffers[i].reset();
     }
@@ -3190,6 +3190,22 @@ DescriptorSetLayout* GpuDevice::access_descriptor_set_layout(puffin::DescriptorS
 
 const DescriptorSetLayout* GpuDevice::access_descriptor_set_layout(puffin::DescriptorSetLayoutHandle layout) const {
     return (const DescriptorSetLayout*) descriptor_set_layouts.access_resource(layout.index);
+}
+
+DescriptorSetLayoutHandle GpuDevice::access_descriptor_set_layout_handle(PipelineHandle pipeline_handle,
+                                                                         int layout_index) {
+    Pipeline* pipeline = access_pipeline(pipeline_handle);
+    PASSERT(pipeline != nullptr);
+
+    return pipeline->descriptor_set_layout_handle[layout_index];
+}
+
+DescriptorSetLayoutHandle GpuDevice::access_descriptor_set_layout_handle(PipelineHandle pipeline_handle,
+                                                                         int layout_index) const {
+    const Pipeline* pipeline = access_pipeline(pipeline_handle);
+    PASSERT(pipeline != nullptr);
+
+    return pipeline->descriptor_set_layout_handle[layout_index];
 }
 
 DescriptorSet* GpuDevice::access_descriptor_set(DescriptorSetHandle set) {
