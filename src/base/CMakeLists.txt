@@ -31,6 +31,8 @@ add_library(
 	"gltf.cpp"
 	"time.hpp"
 	"time.cpp"
+	"camera.hpp"
+	"camera.cpp"
 )
 
 # necessary libraries

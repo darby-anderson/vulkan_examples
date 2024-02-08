@@ -1,7 +1,7 @@
 add_library(
         application
-        "camera.hpp"
-        "camera.cpp"
+        "../graveyard/camera.hpp"
+        "../graveyard/camera.cpp"
         "window.hpp"
         "window.cpp"
         "input.hpp"
