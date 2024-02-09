@@ -9,6 +9,8 @@ add_library(
         "keys.hpp"
         "application.hpp"
         "application.cpp"
+        "game_camera.hpp"
+        "game_camera.cpp"
 )
 
 

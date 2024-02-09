@@ -6,12 +6,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# shader data
+# shader data -> CONFIG
 set(PUFFIN_SHADER_FOLDER ${PROJECT_SOURCE_DIR}/shaders)
-
-configure_file(config.h.in config.h)
+configure_file(puffin_config.h.in puffin_config.h)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
+
+# INCLUDE CONFIG FILE
+target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
 # dependencies
 

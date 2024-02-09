@@ -40,6 +40,8 @@ namespace puffin {
         bool is_mouse_button_just_pressed(MouseButton button);
         bool is_mouse_button_just_released(MouseButton button);
 
+        bool is_mouse_dragging(MouseButton button);
+
         u8 keys[KEY_COUNT];
         u8 first_frame_keys[KEY_COUNT];
         u8 released_keys[KEY_COUNT];
@@ -50,6 +52,8 @@ namespace puffin {
 
         CursorPosition mouse_position = { 0.0f, 0.0f };
         CursorPosition previous_mouse_position = { 0.0f, 0.0f };
+        CursorPosition mouse_clicked_position[MOUSE_BUTTON_COUNT];
+        f32            mouse_drag_distance[MOUSE_BUTTON_COUNT];
 
         static constexpr cstring k_name     = "puffin_input_service";
 

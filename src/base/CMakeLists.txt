@@ -37,6 +37,7 @@ add_library(
 
 # necessary libraries
 target_link_libraries(base tlsf)
+target_link_libraries(base cglm)
 
 # necessary header
 target_include_directories(base PUBLIC ../../deps/wyhash)

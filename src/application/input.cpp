@@ -3,6 +3,7 @@
 //
 
 #include <cstring>
+#include <cmath>
 
 #include "input.hpp"
 
@@ -60,8 +61,6 @@ namespace puffin {
         memset(released_mouse_buttons, 0, MOUSE_BUTTON_COUNT);
     }
 
-
-
     void InputService::start_new_frame() {
         for(u32 i = 0; i < KEY_COUNT; i++) {
             released_keys[i] = 0;
@@ -75,6 +74,17 @@ namespace puffin {
 
         previous_mouse_position = mouse_position;
         mouse_position = window->get_window_cursor_position();
+
+        for(u32 i = 0; i < MOUSE_BUTTON_COUNT; i++) {
+            if(is_mouse_button_just_pressed( (MouseButton) i )) {
+                mouse_clicked_position[i] = mouse_position;
+            } else if(is_mouse_button_down( (MouseButton) i )) {
+                f32 delta_x = mouse_position.x - mouse_clicked_position[i].x;
+                f32 delta_y = mouse_position.y - mouse_clicked_position[i].y;
+                mouse_drag_distance[i] = sqrtf((delta_x * delta_x) + (delta_y * delta_y));
+            }
+        }
+
     }
 
     bool InputService::is_mouse_button_down(MouseButton button) {

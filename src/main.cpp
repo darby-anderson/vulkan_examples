@@ -10,6 +10,7 @@
 #include "application/window.hpp"
 #include "application/input.hpp"
 #include "application/keys.hpp"
+#include "application/game_camera.hpp"
 
 #include "graphics/gpu_device.hpp"
 #include "graphics/command_buffer.hpp"
@@ -32,6 +33,8 @@
 #include "numerics.hpp"
 #include "resource_manager.hpp"
 #include "time.hpp"
+
+#include "puffin_config.h"
 
 #include <stdlib.h>
 
@@ -536,8 +539,9 @@ int main(int argc, char** argv) {
     ImGuiServiceConfiguration imgui_config {&gpu, window.platform_handle};
     imgui->init(&imgui_config);
 
-    // START HERE!!
-    GameCamera game_cam;
+    GameCamera game_camera;
+    game_camera.camera.init_perspective(0.1f, 4000.f, 60.f, w_conf.width * 1.f / w_conf.height);
+    game_camera.init(true, 20.f, 6.f, 0.1f);
 
     time_service_init();
 
@@ -554,104 +558,25 @@ int main(int argc, char** argv) {
     memcpy(gltf_file, argv[1], strlen(argv[1]));
     file_name_from_path(gltf_file);
 
-    glTF::glTF scene = gltf_load_file(gltf_file);
-
-    Array<TextureResource> images;
-    images.init(allocator, scene.images_count);
-
-    for(u32 image_index = 0; image_index < scene.images_count; image_index++) {
-        glTF::Image& image = scene.images[image_index];
-        TextureResource* tr = renderer.create_texture(image.uri.data, image.uri.data);
-        PASSERT(tr != nullptr);
-
-        images.push(*tr);
-    }
-
-    TextureCreation texture_creation {};
-    u32 zero_value = 0;
-    texture_creation.set_name("dummy_texture").set_size(1, 1, 1)
-        .set_format_type(VK_FORMAT_R8G8B8A8_UNORM, TextureType::Texture2D).set_flags(1, 0).set_data(&zero_value);
-    TextureHandle dummy_texture = gpu.create_texture(texture_creation);
-
-    SamplerCreation sampler_creation {};
-    sampler_creation.min_filter = VK_FILTER_LINEAR;
-    sampler_creation.mag_filter = VK_FILTER_LINEAR;
-    sampler_creation.address_mode_u = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    sampler_creation.address_mode_v = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    SamplerHandle dummy_sampler = gpu.create_sampler(sampler_creation);
-
-    StringBuffer resource_name_buffer;
-    resource_name_buffer.init(allocator, 4096);
-
-    Array<SamplerResource> samplers;
-    samplers.init(allocator, scene.samplers_count);
-
-    for(u32 sampler_index = 0; sampler_index < scene.samplers_count; sampler_index++) {
-        glTF::Sampler& sampler = scene.samplers[sampler_index];
-
-        char* sampler_name = resource_name_buffer.append_use_f("sampler_%u", sampler_index);
-
-        SamplerCreation creation;
-        creation.min_filter = sampler.min_filter == glTF::Sampler::Filter::LINEAR ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
-        creation.mag_filter = sampler.mag_filter == glTF::Sampler::Filter::LINEAR ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
-        creation.name = sampler_name;
-
-        SamplerResource* sr = renderer.create_sampler(creation);
-        PASSERT(sr != nullptr);
-
-        samplers.push(*sr);
-    }
-
-    Array<void*> buffers_data;
-    buffers_data.init(allocator, scene.buffers_count);
-
-    for(u32 buffer_index = 0; buffer_index < scene.buffers_count; buffer_index++) {
-        glTF::Buffer& buffer = scene.buffers[buffer_index];
-
-        FileReadResult buffer_data = file_read_binary(buffer.uri.data, allocator);
-        buffers_data.push(buffer_data.data);
-    }
-
-    Array<BufferResource> buffers;
-    buffers.init(allocator, scene.buffer_views_count);
-
-    for(u32 buffer_index = 0; buffer_index < scene.buffer_views_count; buffer_index++) {
-        char* buffer_name = nullptr;
-        u32 buffer_size = 0 ;
-        u8* data = get_buffer_data(scene.buffer_views, buffer_index, buffers_data, &buffer_size, &buffer_name);
-
-        VkBufferUsageFlags flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-        if(buffer_name == nullptr) {
-            buffer_name = resource_name_buffer.append_use_f("buffer_%u", buffer_index);
-        } else {
-            buffer_name = resource_name_buffer.append_use_f("%s_%u", buffer_name, buffer_index);
-
-        }
-
-        BufferResource* br = renderer.create_buffer(flags, ResourceUsageType::Immutable, buffer_size, data, buffer_name);
-        PASSERT(br != nullptr);
-
-        buffers.push(*br);
-    }
+    Scene scene;
+    scene_load_from_gltf(gltf_file, renderer, allocator, scene);
 
     directory_change(cwd.path);
-
-    Array<MeshDraw> mesh_draws;
-    mesh_draws.init(allocator, scene.meshes_count);
-
-    Array<BufferHandle> custom_mesh_buffers{};
-    custom_mesh_buffers.init(allocator, 8);
-
-    vec4s dummy_data[3] {};
-    BufferCreation buffer_creation{};
-    buffer_creation.set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, ResourceUsageType::Immutable, sizeof(vec3s) * 3).set_data(dummy_data).set_name("dummy_attribute_buffer");
-
-    BufferHandle dummy_attribute_buffer = gpu.create_buffer(buffer_creation);
 
     {
         // Create pipeline state
         PipelineCreation pipeline_creation;
+
+        StringBuffer path_buffer;
+        path_buffer.init(allocator, 1024);
+
+        cstring vert_file = "main.vert";
+        char* vert_path = path_buffer.append_use_f("%s%s", PUFFIN_SHADER_FOLDER, vert_file);
+        FileReadResult vert_code = file_read_text(vert_file, allocator);
+
+        cstring frag_file = "main.vert";
+        char* frag_path = path_buffer.append_use_f("%s%s", PUFFIN_SHADER_FOLDER, frag_file);
+        FileReadResult frag_code = file_read_text(frag_file, allocator);
 
         // Vertex input
         pipeline_creation.vertex_input.add_vertex_attribute( {0, 0, 0, VertexComponentFormat::Float3}); // position
@@ -672,281 +597,13 @@ int main(int argc, char** argv) {
         // Depth
         pipeline_creation.depth_stencil.set_depth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-        // Shader state
-        const char* vs_code = R"FOO(
-            #version 450
+        // Blend
+        pipeline_creation.blend_state.add_blend_state().set_color(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 
-            uint MaterialFeatures_ColorTexture              = 1 << 0;
-            uint MaterialFeatures_NormalTexture             = 1 << 1;
-            uint MaterialFeatures_RoughnessTexture          = 1 << 2;
-            uint MaterialFeatures_OcclusionTexture          = 1 << 3;
-            uint MaterialFeatures_EmissiveTexture           = 1 << 4;
-            uint MaterialFeatures_TangentVertexAttribute    = 1 << 5;
-            uint MaterialFeatures_TexcoordVertexAttribute   = 1 << 6;
+        pipeline_creation.shaders.set_name("main").add_stage(vert_code.data, vert_code.size, VK_SHADER_STAGE_VERTEX_BIT)
+                                                    .add_stage(frag_code.data, frag_code.size, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-            layout(std140, binding = 0) uniform LocalConstants {
-                mat4 m;
-                mat4 vp;
-                vec4 eye;
-                vec4 light;
-            };
-
-            layout(std140, binding = 1) uniform MaterialConstant {
-                vec4 base_color_factor;
-                mat4 model;
-                mat4 model_inv;
-
-                vec3 emissive_factor;
-                float metallic_factor;
-
-                float roughness_factor;
-                float occlusion_factor;
-                uint flags;
-            };
-
-            layout(location = 0) in vec3 position;
-            layout(location = 1) in vec4 tangent;
-            layout(location = 2) in vec3 normal;
-            layout(location = 3) in vec2 texCoord0;
-
-            layout(location = 0) out vec2 vTexCoord0;
-            layout(location = 1) out vec3 vNormal;
-            layout(location = 2) out vec4 vTangent;
-            layout(location = 3) out vec4 vPosition;
-
-            void main() {
-                gl_Position = vp * m * model * vec4(position, 1);
-                vPosition = m * model * vec4(position, 1.0);
-                vNormal = mat3(model_inv) * normal;
-
-                if((flags & MaterialFeatures_TexcoordVertexAttribute) != 0) {
-                    vTexCoord0 = texCoord0;
-                }
-
-                if((flags & MaterialFeatures_TangentVertexAttribute) != 0) {
-                    vTangent = tangent;
-                }
-            }
-)FOO";
-
-        const char* fs_code = R"FOO(
-            #version 450
-
-            uint MaterialFeatures_ColorTexture              = 1 << 0;
-            uint MaterialFeatures_NormalTexture             = 1 << 1;
-            uint MaterialFeatures_RoughnessTexture          = 1 << 2;
-            uint MaterialFeatures_OcclusionTexture          = 1 << 3;
-            uint MaterialFeatures_EmissiveTexture           = 1 << 4;
-            uint MaterialFeatures_TangentVertexAttribute    = 1 << 5;
-            uint MaterialFeatures_TexcoordVertexAttribute   = 1 << 6;
-
-            layout(std140, binding = 0) uniform LocalConstants {
-                mat4 m;
-                mat4 vp;
-                vec4 eye;
-                vec4 light;
-            };
-
-            layout(std140, binding = 1) uniform MaterialConstant {
-                vec4 base_color_factor;
-                mat4 model;
-                mat4 model_inv;
-
-                vec3 emissive_factor;
-                float metallic_factor;
-
-                float roughness_factor;
-                float occlusion_factor;
-                uint flags;
-            };
-
-            layout(binding = 2) uniform sampler2D diffuseTexture;
-            layout(binding = 3) uniform sampler2D roughnessMetalnessTexture;
-            layout(binding = 4) uniform sampler2D occlusionTexture;
-            layout(binding = 5) uniform sampler2D emissiveTexture;
-            layout(binding = 6) uniform sampler2D normalTexture;
-
-            layout(location = 0) in vec2 vTexcoord0;
-            layout(location = 1) in vec3 vNormal;
-            layout(location = 2) in vec4 vTangent;
-            layout(location = 3) in vec4 vPosition;
-
-            layout(location = 0) out vec4 frag_color;
-
-            #define PI 3.1415926538
-
-            vec3 decode_srgb(vec3 c) {
-                vec3 result;
-                if(c.r <= 0.04045) {
-                    result.r = c.r / 12.92;
-                } else {
-                    result.r = pow((c.r + 0.055) / 1.055, 2.4);
-                }
-
-                if(c.g <= 0.04045) {
-                    result.g = c.g / 12.92;
-                } else {
-                    result.g = pow((c.g + 0.055) / 1.055, 2.4);
-                }
-
-                if(c.b <= 0.04045) {
-                    result.b = c.b / 12.92;
-                } else {
-                    result.b = pow((c.b + 0.055) / 1.055, 2.4);
-                }
-
-                return clamp(result, 0.0, 1.0);
-            }
-
-            vec3 encode_srgb(vec3 c) {
-                vec3 result;
-                if(c.r <= 0.0031308) {
-                    result.r = c.r * 12.92;
-                } else {
-                    result.r = 1.055 * pow(c.r, 1.0 / 2.4) - 0.055;
-                }
-
-                if(c.g <= 0.0031308) {
-                    result.g = c.g * 12.92;
-                } else {
-                    result.g = 1.055 * pow(c.g, 1.0 / 2.4) - 0.055;
-                }
-
-                if(c.b <= 0.0031308) {
-                    result.b = c.b * 12.92;
-                } else {
-                    result.b = 1.055 * pow(c.b, 1.0 / 2.4) - 0.055;
-                }
-
-                return clamp(result, 0.0, 1.0);
-            }
-
-            float heaviside(float v) {
-                if(v > 0.0) {
-                    return 1.0;
-                }
-
-                return 0.0;
-            }
-
-            void main() {
-
-                mat3 TBN = mat3(1.0);
-
-                if((flags & MaterialFeatures_TangentVertexAttribute) != 0) {
-                    vec3 tangent = normalize(vTangent.xyz);
-                    vec3 bitangent = cross( normalize(vNormal), tangent) * vTangent.w;
-
-                    TBN = mat3(
-                        tangent,
-                        bitangent,
-                        normalize(vNormal)
-                    );
-                } else {
-                    // dFdx and dFdy return the partial derivative of an argument with respect to x or y
-//                    Concentrating on the Fine variant. As each fragment process reaches the dFd* call
-//                    the GPU will collect the values passed in and based on those values,
-//                    typically through getting the difference between neighbouring values and dividing by the fragment size.
-
-                    vec3 Q1 = dFdx(vPosition.xyz);
-                    vec3 Q2 = dFdy(vPosition.xyz);
-                    vec2 st1 = dFdx(vTexcoord0);
-                    vec2 st2 = dFdy(vTexcoord0);
-
-                    vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
-                    vec3 B = normalize(-Q1 * st2.s + Q2 * st1.s);
-
-                    TBN = mat3(
-                        T,
-                        B,
-                        normalize(vNormal)
-                    );
-                }
-
-                vec3 V = normalize(eye.xyz - vPosition.xyz);
-                vec3 L = normalize(light.xyz - vPosition.xyz);
-                vec3 N = normalize(vNormal);
-
-                if((flags & MaterialFeatures_NormalTexture) != 0) {
-                    N = normalize(texture(normalTexture, vTexcoord0).rgb * 2.0 - 1.0);
-                    N = normalize(TBN * N);
-                }
-
-                vec3 H = normalize(L + V);
-
-                float roughness = roughness_factor;
-                float metalness = metallic_factor;
-
-                if((flags & MaterialFeatures_RoughnessTexture) != 0) {
-                    // red channel for occlusion
-                    // green channel for roughness
-                    // blue channel for metalness
-
-                    vec4 rm = texture(roughnessMetalnessTexture, vTexcoord0);
-
-                    roughness *= rm.g;
-                    metalness *= rm.b;
-                }
-
-                float ao = 1.0f;
-                if((flags & MaterialFeatures_OcclusionTexture) != 0) {
-                    ao = texture(occlusionTexture, vTexcoord0).r;
-                }
-
-                float alpha = pow(roughness, 2.0f);
-
-                vec4 base_color = base_color_factor;
-                if((flags & MaterialFeatures_ColorTexture) != 0) {
-                    vec4 albedo = texture(diffuseTexture, vTexcoord0);
-                    base_color.rgb *= decode_srgb(albedo.rgb);
-                    base_color.a *= albedo.a;
-                }
-
-                vec3 emissive = vec3(0);
-                if((flags & MaterialFeatures_EmissiveTexture) != 0) {
-                    vec4 e = texture(emissiveTexture, vTexcoord0);
-
-                    emissive += decode_srgb(e.rgb) * emissive_factor;
-                }
-
-                // https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#specular-brdf
-                float NdotH = dot(N, H);
-                float alpha_squared = alpha * alpha;
-                float d_denom = (NdotH * NdotH) * (alpha_squared - 1.0) + 1.0f;
-                float distribution = (alpha_squared * heaviside(NdotH)) / (PI * d_denom * d_denom);
-
-                float NdotL = clamp(dot(N, L), 0, 1);
-
-                if(NdotL > 1e-5) {
-                    float NdotV = dot(N, V);
-                    float HdotL = dot(H, L);
-                    float HdotV = dot(H, V);
-
-                    float visibility = (heaviside(HdotL) / (abs(NdotL) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotL * NdotL)))) * (heaviside(HdotV) / (abs(NdotV) + sqrt(alpha_squared + (1.0 - alpha_squared) * (NdotV * NdotV))));
-
-                    float specular_brdf = visibility * distribution;
-
-                    vec3 diffuse_brdf = (1 / PI) * base_color.rgb;
-
-                    vec3 conductor_fresnel = specular_brdf * (base_color.rgb + (1.0 - base_color.rgb) * pow(1.0 - abs(HdotV), 5));
-
-                    float f0 = 0.04;
-                    float fr = f0 + (1 - f0) * pow(1 - abs(HdotV), 5);
-                    vec3 fresnel_mix = mix(diffuse_brdf, vec3(specular_brdf), fr);
-
-                    vec3 material_color = mix(fresnel_mix, conductor_fresnel, metalness);
-
-                    material_color = emissive + mix(material_color, material_color * ao, occlusion_factor);
-
-                    frag_color = vec4(encode_srgb(material_color), base_color.a);
-                } else {
-                    frag_color = vec4(base_color.rgb * 0.1, base_color.a);
-                }
-            }
-)FOO";
-
-        pipeline_creation.shaders.set_name("Cube").add_stage(vs_code, (uint32_t)strlen(vs_code), VK_SHADER_STAGE_VERTEX_BIT)
-                                                    .add_stage(fs_code, (uint32_t)strlen(fs_code), VK_SHADER_STAGE_FRAGMENT_BIT);
+        // START HERE!!
 
         // Descriptor set layout
         DescriptorSetLayoutCreation cube_rll_creation{};

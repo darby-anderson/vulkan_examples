@@ -7,6 +7,8 @@
 #include "platform.hpp"
 #include "cglm/struct/mat4.h"
 
+#include ""
+
 namespace puffin {
 
 struct Camera {
@@ -18,7 +20,7 @@ struct Camera {
 
     void            set_viewport_size(f32 width, f32 height);
     void            set_zoom(f32 zoom);
-    void            set_aspect_ration(f32 aspect_ratio);
+    void            set_aspect_ratio(f32 aspect_ratio);
     void            set_fov_y(f32 fov_y);
 
     void            update();

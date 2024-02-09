@@ -61,6 +61,14 @@ namespace puffin {
         KEY_LEFT    = 263,
         KEY_DOWN    = 264,
         KEY_UP      = 265,
+        KEY_PAGE_UP     = 266,
+        KEY_PAGE_DOWN   = 267,
+
+        // ...
+
+        KEY_LEFT_SHIFT      = 340,
+        KEY_LEFT_CONTROL    = 341,
+        KEY_LEFT_ALT        = 342,
 
         // ..
 
