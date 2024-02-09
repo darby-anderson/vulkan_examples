@@ -1,0 +1,5 @@
+//
+// Created by darby on 2/3/2024.
+//
+
+#define PUFFIN_SHADER_FOLDER "@PUFFIN_SHADER_FOLDER@"
