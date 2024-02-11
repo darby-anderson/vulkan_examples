@@ -102,7 +102,7 @@ void CommandBufferRing::init(GpuDevice* gpu_) {
         check(vkAllocateCommandBuffers(gpu->vulkan_device, &cmd, &command_buffers[i].vk_command_buffer));
 
         command_buffers[i].gpu_device = gpu;
-        command_buffers[i].handle = i;
+        command_buffers[i].init(QueueType::Enum::Graphics, 0, 0, false);
         command_buffers[i].reset();
     }
 }
@@ -1200,10 +1200,38 @@ ShaderStateHandle GpuDevice::create_shader_state(const ShaderStateCreation& crea
     return handle;
 }
 
-PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
+PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation, cstring cache_path) {
     PipelineHandle handle = { pipelines.obtain_resource() };
     if(handle.index == k_invalid_index) {
         return handle;
+    }
+
+    VkPipelineCache pipeline_cache = VK_NULL_HANDLE;
+    VkPipelineCacheCreateInfo pipeline_cache_create_info { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
+
+    bool cache_exists = file_exists(cache_path);
+    if(cache_path != nullptr && cache_exists) {
+        FileReadResult read_result = file_read_binary(cache_path, allocator);
+
+        VkPipelineCacheHeaderVersionOne* cache_header = (VkPipelineCacheHeaderVersionOne*) read_result.data;
+
+        if(cache_header->deviceID == vulkan_physical_device_properties.deviceID &&
+           cache_header->vendorID == vulkan_physical_device_properties.vendorID &&
+           memcmp(cache_header->pipelineCacheUUID, vulkan_physical_device_properties.pipelineCacheUUID, VK_UUID_SIZE) == 0)
+        {
+            pipeline_cache_create_info.initialDataSize = read_result.size;
+            pipeline_cache_create_info.pInitialData = read_result.data;
+        } else {
+            cache_exists = false;
+        }
+
+        VkResult result = vkCreatePipelineCache(vulkan_device, &pipeline_cache_create_info, vulkan_allocation_callbacks, &pipeline_cache);
+        check(result);
+
+        allocator->deallocate(read_result.data);
+    } else {
+        VkResult result = vkCreatePipelineCache(vulkan_device, &pipeline_cache_create_info, vulkan_allocation_callbacks, &pipeline_cache);
+        check(result);
     }
 
     ShaderStateHandle shader_state = create_shader_state(creation.shaders);
@@ -1223,6 +1251,8 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
 
     VkDescriptorSetLayout vk_layouts[k_max_descriptor_set_layouts];
 
+    u32 num_active_layouts = shader_state_data->parse_result->set_count;
+
     // Create VkPipelineLayout
     for(u32 l = 0; l < creation.num_active_layouts; l++) {
         pipeline->descriptor_set_layout[l] = access_descriptor_set_layout(creation.descriptor_set_layout[l]);
@@ -1231,11 +1261,17 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
         vk_layouts[l] = pipeline->descriptor_set_layout[l]->vk_descriptor_set_layout;
     }
 
+    u32 bindless_active = 0;
+    if(bindless_supported) {
+        vk_layouts[num_active_layouts] = vulkan_bindless_descriptor_set_layout;
+        bindless_active = 1;
+    }
+
     VkPipelineLayoutCreateInfo pipeline_layout_info = {
             VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO
     };
     pipeline_layout_info.pSetLayouts = vk_layouts;
-    pipeline_layout_info.setLayoutCount = creation.num_active_layouts;
+    pipeline_layout_info.setLayoutCount = creation.num_active_layouts + bindless_active;
 
     VkPipelineLayout pipeline_layout;
     VkResult result = vkCreatePipelineLayout(vulkan_device, &pipeline_layout_info, vulkan_allocation_callbacks, &pipeline_layout);
@@ -1444,7 +1480,7 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
 
         pipeline_info.pDynamicState = &dynamic_state;
 
-        vkCreateGraphicsPipelines(vulkan_device, VK_NULL_HANDLE, 1, &pipeline_info, vulkan_allocation_callbacks, &pipeline->vk_pipeline);
+        vkCreateGraphicsPipelines(vulkan_device, pipeline_cache, 1, &pipeline_info, vulkan_allocation_callbacks, &pipeline->vk_pipeline);
 
         pipeline->vk_bind_point = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
 
@@ -1454,10 +1490,26 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation) {
         pipeline_info.stage = shader_state_data->shader_stage_info[0];
         pipeline_info.layout = pipeline_layout;
 
-        vkCreateComputePipelines(vulkan_device, VK_NULL_HANDLE, 1, &pipeline_info, vulkan_allocation_callbacks, &pipeline->vk_pipeline);
+        vkCreateComputePipelines(vulkan_device, pipeline_cache, 1, &pipeline_info, vulkan_allocation_callbacks, &pipeline->vk_pipeline);
 
         pipeline->vk_bind_point = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
     }
+
+    if(cache_path != nullptr && !cache_exists) {
+        size_t cache_data_size = 0 ;
+        VkResult result = vkGetPipelineCacheData(vulkan_device, pipeline_cache, &cache_data_size, nullptr);
+        check(result);
+
+        void* cache_data = allocator->allocate(cache_data_size, 64);
+        result = vkGetPipelineCacheData(vulkan_device, pipeline_cache, &cache_data_size, cache_data);
+        check(result);
+
+        file_write_binary(cache_path, cache_data, cache_data_size);
+
+        allocator->deallocate(cache_data);
+    }
+
+    vkDestroyPipelineCache(vulkan_device, pipeline_cache, vulkan_allocation_callbacks);
 
     return handle;
 }
@@ -1595,6 +1647,137 @@ DescriptorSetLayoutHandle GpuDevice::create_descriptor_set_layout(const puffin::
     vkCreateDescriptorSetLayout(vulkan_device, &layout_info, vulkan_allocation_callbacks, &descriptor_set_layout->vk_descriptor_set_layout);
 
     return handle;
+}
+
+void GpuDevice::fill_write_descriptor_sets(GpuDevice& gpu, const DescriptorSetLayout* descriptor_set_layout, VkDescriptorSet vk_descriptor_set,
+                                       VkWriteDescriptorSet* descriptor_write, VkDescriptorBufferInfo* buffer_info, VkDescriptorImageInfo* image_info,
+                                       VkSampler vk_default_sampler, u32& num_resources, const ResourceHandle* resources, const SamplerHandle* samplers, const u16* bindings) {
+
+    u32 used_resources = 0;
+    for(u32 r = 0; r < num_resources; r++) {
+        // Binding array contains the index into the resource layout binding to retrieve
+        // the correct binding information
+        u32 layout_binding_index = bindings[r];
+
+        const DescriptorBinding& binding = descriptor_set_layout->bindings[layout_binding_index];
+
+        if(gpu.bindless_supported && (binding.type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER || binding.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)) {
+            continue;
+        }
+
+        u32 i = used_resources;
+        used_resources++;
+
+        descriptor_write[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+        descriptor_write[i].dstSet = vk_descriptor_set;
+        // use binding array to get final binding point.
+        const u32 binding_point = binding.start;
+        descriptor_write[i].dstBinding = binding_point;
+        descriptor_write[i].dstArrayElement = 0;
+        descriptor_write[i].descriptorCount = 1;
+
+        switch(binding.type) {
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            {
+                descriptor_write[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+                TextureHandle texture_handle = { resources[r] };
+                Texture* texture_data = gpu.access_texture(texture_handle);
+
+                // Find proper sampler
+                image_info[i].sampler = vk_default_sampler;
+                if(texture_data->sampler) {
+                    image_info[i].sampler = texture_data->sampler->vk_sampler;
+                }
+
+                if(samplers[r].index != k_invalid_index) {
+                    Sampler* sampler = gpu.access_sampler({samplers[r]});
+                    image_info[i].sampler = sampler->vk_sampler;
+                }
+
+                image_info[i].imageLayout = TextureFormat::has_depth_or_stencil(texture_data->vk_format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                image_info[i].imageView = texture_data->vk_image_view;
+
+                descriptor_write[i].pImageInfo = &image_info[i];
+
+                break;
+            }
+
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            {
+                descriptor_write[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+                TextureHandle texture_handle = { resources[r] };
+                Texture* texture_data = gpu.access_texture(texture_handle);
+
+                image_info[i].sampler = nullptr;
+                image_info[i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                image_info[i].imageView = texture_data->vk_image_view;
+
+                descriptor_write[i].pImageInfo = &image_info[i];
+
+                break;
+            }
+
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            {
+                BufferHandle buffer_handle = { resources[r] };
+                Buffer* buffer = gpu.access_buffer(buffer_handle);
+
+                descriptor_write[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptor_write[i].descriptorType = buffer->usage == ResourceUsageType::Dynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+                // Bind parent buffer if present, used for dynamic resources
+                if(buffer->parent_buffer.index != k_invalid_index) {
+                    Buffer* parent_buffer = gpu.access_buffer(buffer->parent_buffer);
+
+                    buffer_info[i].buffer = parent_buffer->vk_buffer;
+                } else {
+                    buffer_info[i].buffer = buffer->vk_buffer;
+                }
+
+                buffer_info[i].offset = 0 ;
+                buffer_info[i].range = buffer->size;
+
+                descriptor_write[i].pBufferInfo = &buffer_info[i];
+
+                break;
+            }
+
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            {
+                BufferHandle buffer_handle = { resources[r] };
+                Buffer* buffer = gpu.access_buffer(buffer_handle);
+
+                descriptor_write[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+                // Bind parent buffer if present, used for dynamic resources
+                if(buffer->parent_buffer.index != k_invalid_index) {
+                    Buffer* parent_buffer = gpu.access_buffer(buffer->parent_buffer);
+
+                    buffer_info[i].buffer = parent_buffer->vk_buffer;
+                } else {
+                    buffer_info[i].buffer = buffer->vk_buffer;
+                }
+
+                buffer_info[i].offset = 0;
+                buffer_info[i].range = buffer->size;
+
+                descriptor_write[i].pBufferInfo = &buffer_info[i];
+
+                break;
+            }
+
+            default:
+            {
+                PASSERTM(false,"Resource type %d not supported in descriptor set creation!\n", binding.type);
+                break;
+            }
+        }
+    }
+
+    num_resources = used_resources;
+
 }
 
 static void vulkan_fill_write_descriptor_sets(GpuDevice& gpu_device, const DescriptorSetLayout* descriptor_set_layout, VkDescriptorSet vk_descriptor_set,
@@ -2691,7 +2874,7 @@ void GpuDevice::present() {
             Texture* texture = access_texture({ texture_to_update.handle });
             VkWriteDescriptorSet& descriptor_write = bindless_descriptor_writes[current_write_index];
             descriptor_write = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-            descriptor_write.descriptorCount - 1;
+            descriptor_write.descriptorCount = 1;
             descriptor_write.dstArrayElement = texture_to_update.handle;
             descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptor_write.dstSet = vulkan_bindless_descriptor_set;
@@ -3192,16 +3375,16 @@ const DescriptorSetLayout* GpuDevice::access_descriptor_set_layout(puffin::Descr
     return (const DescriptorSetLayout*) descriptor_set_layouts.access_resource(layout.index);
 }
 
-DescriptorSetLayoutHandle GpuDevice::access_descriptor_set_layout_handle(PipelineHandle pipeline_handle,
-                                                                         int layout_index) {
+DescriptorSetLayoutHandle GpuDevice::get_descriptor_set_layout_handle(PipelineHandle pipeline_handle,
+                                                                      int layout_index) {
     Pipeline* pipeline = access_pipeline(pipeline_handle);
     PASSERT(pipeline != nullptr);
 
     return pipeline->descriptor_set_layout_handle[layout_index];
 }
 
-DescriptorSetLayoutHandle GpuDevice::access_descriptor_set_layout_handle(PipelineHandle pipeline_handle,
-                                                                         int layout_index) const {
+DescriptorSetLayoutHandle GpuDevice::get_descriptor_set_layout_handle(PipelineHandle pipeline_handle,
+                                                                      int layout_index) const {
     const Pipeline* pipeline = access_pipeline(pipeline_handle);
     PASSERT(pipeline != nullptr);
 

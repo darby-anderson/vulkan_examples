@@ -95,6 +95,11 @@ namespace puffin {
 
         static GpuDevice*       instance();
 
+        // Helper methods
+        static void             fill_write_descriptor_sets(GpuDevice& gpu, const DescriptorSetLayout* descriptor_set_layout, VkDescriptorSet vk_descriptor_set,
+                                                           VkWriteDescriptorSet* descriptor_write, VkDescriptorBufferInfo* buffer_info, VkDescriptorImageInfo* image_info,
+                                                           VkSampler vk_default_sampler, u32& num_resources, const ResourceHandle* resources,  const SamplerHandle* samplers, const u16* bindings);
+
         // Init/Terminate methods
         void                    init(const DeviceCreation& creation);
         void                    shutdown();
@@ -102,7 +107,7 @@ namespace puffin {
         // Creation/Destruction of resources
         BufferHandle            create_buffer(const BufferCreation& creation);
         TextureHandle           create_texture(const TextureCreation& creation);
-        PipelineHandle          create_pipeline(const PipelineCreation& creation);
+        PipelineHandle          create_pipeline(const PipelineCreation& creation, cstring cache_path = nullptr);
         SamplerHandle           create_sampler(const SamplerCreation& creation);
         DescriptorSetLayoutHandle create_descriptor_set_layout(const DescriptorSetLayoutCreation& creation);
         DescriptorSetHandle     create_descriptor_set(const DescriptorSetCreation& creation);
@@ -332,8 +337,8 @@ namespace puffin {
         DescriptorSetLayout*    access_descriptor_set_layout(DescriptorSetLayoutHandle layout);
         const DescriptorSetLayout*      access_descriptor_set_layout(DescriptorSetLayoutHandle layout) const;
 
-        DescriptorSetLayoutHandle       access_descriptor_set_layout_handle(PipelineHandle pipeline_handle, int layout_index);
-        DescriptorSetLayoutHandle       access_descriptor_set_layout_handle(PipelineHandle pipeline_handle, int layout_index) const;
+        DescriptorSetLayoutHandle       get_descriptor_set_layout_handle(PipelineHandle pipeline_handle, int layout_index);
+        DescriptorSetLayoutHandle       get_descriptor_set_layout_handle(PipelineHandle pipeline_handle, int layout_index) const;
 
         DescriptorSet*          access_descriptor_set(DescriptorSetHandle set);
         const DescriptorSet*    access_descriptor_set(DescriptorSetHandle set) const;

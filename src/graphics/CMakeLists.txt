@@ -17,6 +17,8 @@ add_library(
         "puffin_imgui.cpp"
         "gpu_profiler.hpp"
         "gpu_profiler.cpp"
+        "spirv_parser.cpp"
+        "spriv_parser.hpp"
 )
 
 
@@ -35,8 +37,9 @@ target_link_libraries(
 target_include_directories(graphics PUBLIC ../../deps/stb)
 target_include_directories(graphics PUBLIC ../../deps/VulkanMemoryAllocator/include)
 
-# config
-target_include_directories(graphics PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+# config - CMAKE_BINARY_DIR is the main directory, where the config lives
+target_include_directories(graphics PUBLIC "${CMAKE_BINARY_DIR}")
+
 
 # internal headers
 target_include_directories(graphics PUBLIC ../base)

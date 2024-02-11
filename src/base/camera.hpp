@@ -7,7 +7,6 @@
 #include "platform.hpp"
 #include "cglm/struct/mat4.h"
 
-#include ""
 
 namespace puffin {
 

@@ -99,6 +99,16 @@ namespace puffin {
         return released_mouse_buttons[button] && window->has_focus();
     }
 
+    static constexpr f32 k_mouse_drag_min_distance = 4.f;
+
+    bool InputService::is_mouse_dragging(MouseButton button) {
+        if(!mouse_buttons[button]) {
+            return false;
+        }
+
+        return mouse_drag_distance[button] > k_mouse_drag_min_distance;
+    }
+
     bool InputService::is_key_down(Key key) {
         return keys[key] && window->has_focus();
     }

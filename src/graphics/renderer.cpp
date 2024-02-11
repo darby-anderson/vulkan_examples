@@ -11,7 +11,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "config.h"
+#include "puffin_config.h"
 
 namespace puffin {
 
@@ -292,7 +292,7 @@ Program* Renderer::create_program(const ProgramCreation& creation) {
                 pass.pipeline = gpu->create_pipeline(creation.pipeline_creation);
             }
 
-            pass.descriptor_set_layout = gpu->access_descriptor_set_layout(pass.pipeline, 0);
+            pass.descriptor_set_layout = gpu->get_descriptor_set_layout_handle(pass.pipeline, 0);
         }
 
         pipeline_cache_path.shutdown();
@@ -310,7 +310,7 @@ Program* Renderer::create_program(const ProgramCreation& creation) {
 }
 
 Material* Renderer::create_material(const MaterialCreation& creation) {
-    Material* material materials.obtain();
+    Material* material = materials.obtain();
 
     if(material) {
         material->program = creation.program;
@@ -318,10 +318,35 @@ Material* Renderer::create_material(const MaterialCreation& creation) {
         material->render_index = creation.render_index;
 
         if(creation.name != nullptr) {
-            resource_cache.m
+            resource_cache.materials.insert(hash_calculate(creation.name), material);
         }
+
+        material->references = 1;
+
+        return material;
     }
 
+    return nullptr;
+}
+
+Material* Renderer::create_material(Program* program, cstring name) {
+    MaterialCreation creation {program, name};
+    return create_material(creation);
+}
+
+PipelineHandle Renderer::get_pipeline(Material* material) {
+    PASSERT(material != nullptr);
+    return material->program->passes[0].pipeline;
+}
+
+DescriptorSetHandle Renderer::create_descriptor_set(CommandBuffer* gpu_commands, Material* material, DescriptorSetCreation& ds_creation) {
+    PASSERT(material != nullptr);
+
+    DescriptorSetLayoutHandle set_layout = material->program->passes[0].descriptor_set_layout;
+
+    ds_creation.set_layout(set_layout);
+
+    return gpu_commands->create_descriptor_set(ds_creation);
 }
 
 void Renderer::destroy_buffer(BufferResource* buffer) {
@@ -369,6 +394,40 @@ void Renderer::destroy_sampler(SamplerResource* sampler) {
     samplers.release(sampler);
 }
 
+void Renderer::destroy_program(Program* program) {
+    if(!program) {
+        return;
+    }
+
+    program->remove_reference();
+    if(program->references) {
+        return;
+    }
+
+    resource_cache.programs.remove(hash_calculate(program->name));
+
+    gpu->destroy_pipeline(program->passes[0].pipeline);
+    program->passes.shutdown();
+
+    programs.release(program);
+}
+
+void Renderer::destroy_material(Material* material) {
+    if(!material) {
+        return;
+    }
+
+    material->remove_reference();
+    if(material->references) {
+        return;
+    }
+
+    resource_cache.materials.remove(hash_calculate(material->name));
+    materials.release(material);
+}
+
+
+
 void* Renderer::map_buffer(BufferResource* buffer, u32 offset, u32 size) {
     MapBufferParameters cb_map = {buffer->handle, offset, size };
     return gpu->map_buffer(cb_map);
@@ -380,6 +439,7 @@ void Renderer::unmap_buffer(BufferResource* buffer) {
         gpu->unmap_buffer(cb_map);
     }
 }
+
 
 // Resource Loaders ///////
 // Texture Loader //////
@@ -402,7 +462,7 @@ Resource* TextureLoader::unload(cstring name) {
 }
 
 Resource* TextureLoader::create_from_file(cstring name, cstring filename, ResourceManager* resource_manager) {
-    return renderer->create_texture(name, filename);
+    return renderer->create_texture(name, filename, true);
 }
 
 // Buffer Loader /////

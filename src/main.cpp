@@ -2,10 +2,6 @@
 // Created by darby on 5/10/2023.
 //
 
-/*
- * Main file using re-written engine with more modular structure.
- * Based on Sascha Willem and Mastering Graphics Programming with Vulkan
- */
 
 #include "application/window.hpp"
 #include "application/input.hpp"
@@ -80,10 +76,11 @@ enum DrawFlags {
 };
 
 struct UniformData {
-    mat4s m;
     mat4s vp;
     vec4s eye;
     vec4s light;
+    float light_range;
+    float light_intensity;
 };
 
 struct MeshData {
@@ -574,12 +571,12 @@ int main(int argc, char** argv) {
         char* vert_path = path_buffer.append_use_f("%s%s", PUFFIN_SHADER_FOLDER, vert_file);
         FileReadResult vert_code = file_read_text(vert_file, allocator);
 
-        cstring frag_file = "main.vert";
+        cstring frag_file = "main.frag";
         char* frag_path = path_buffer.append_use_f("%s%s", PUFFIN_SHADER_FOLDER, frag_file);
         FileReadResult frag_code = file_read_text(frag_file, allocator);
 
         // Vertex input
-        pipeline_creation.vertex_input.add_vertex_attribute( {0, 0, 0, VertexComponentFormat::Float3}); // position
+        pipeline_creation.vertex_input.add_vertex_attribute({0, 0, 0, VertexComponentFormat::Float3}); // position
         pipeline_creation.vertex_input.add_vertex_stream({0, 12, VertexInputRate::PerVertex});
 
         pipeline_creation.vertex_input.add_vertex_attribute({1, 1, 0, VertexComponentFormat::Float4}); // tangent
@@ -598,392 +595,138 @@ int main(int argc, char** argv) {
         pipeline_creation.depth_stencil.set_depth(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
         // Blend
-        pipeline_creation.blend_state.add_blend_state().set_color(VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
+        pipeline_creation.blend_state.add_blend_state().set_color(VK_BLEND_FACTOR_SRC_ALPHA,
+                                                                  VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD);
 
         pipeline_creation.shaders.set_name("main").add_stage(vert_code.data, vert_code.size, VK_SHADER_STAGE_VERTEX_BIT)
-                                                    .add_stage(frag_code.data, frag_code.size, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-        // START HERE!!
-
-        // Descriptor set layout
-        DescriptorSetLayoutCreation cube_rll_creation{};
-        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, 1, "LocalConstants"});
-        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, 1, "MaterialConstant"});
-
-        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, 1, "diffuseTexture"});
-        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, 1, "roughnessMetalnessTexture"});
-        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, 1, "roughnessMetalnessTexture"});
-        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, 1, "emissiveTexture"});
-        cube_rll_creation.add_binding({VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, 1, "occlusionTexture"});
-
-        // Setting it into pipeline
-        cube_dsl = gpu.create_descriptor_set_layout(cube_rll_creation);
-        pipeline_creation.add_descriptor_set_layout(cube_dsl);
+                .add_stage(frag_code.data, frag_code.size, VK_SHADER_STAGE_FRAGMENT_BIT);
 
         // Constant buffer
         BufferCreation buffer_creation;
-        buffer_creation.reset().set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ResourceUsageType::Dynamic, sizeof(UniformData)).set_name("cube_cb");
-        cube_cb = gpu.create_buffer(buffer_creation);
+        buffer_creation.reset().set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ResourceUsageType::Dynamic,
+                                    sizeof(UniformData)).set_name("scene_cb");
+        scene_cb = gpu.create_buffer(buffer_creation);
 
-        cube_pipeline = gpu.create_pipeline(pipeline_creation);
+        pipeline_creation.name = "main_no_call";
+        Program* program_no_cull = renderer.create_program({pipeline_creation});
 
-        glTF::Scene& root_gltf_scene = scene.scenes[scene.scene];
+        pipeline_creation.rasterization.cull_mode = VK_CULL_MODE_BACK_BIT;
 
-        Array<i32> node_parents;
-        node_parents.init(allocator, scene.nodes_count, scene.nodes_count);
+        pipeline_creation.name = "main_cull";
+        Program* program_cull = renderer.create_program({pipeline_creation});
 
-        Array<u32> node_stack;
-        node_stack.init(allocator, 8);
+        MaterialCreation material_creation;
 
-        Array<mat4s> node_matrix;
-        node_matrix.init(allocator, scene.nodes_count, scene.nodes_count);
+        material_creation.set_name("material_no_cull_opaque").set_program(program_no_cull).set_render_index(0);
+        Material* material_no_cull_opaque = renderer.create_material(material_creation);
 
-        for(u32 node_index = 0; node_index < root_gltf_scene.nodes_count; node_index++) {
-            u32 root_node = root_gltf_scene.nodes[node_index];
-            node_parents[root_node] = -1;
-            node_stack.push(root_node);
-        }
+        material_creation.set_name("material_cull_opaque").set_program(program_no_cull).set_render_index(1);
+        Material* material_cull_opaque = renderer.create_material(material_creation);
 
-        while(node_stack.size) {
-            u32 node_index = node_stack.back();
-            node_stack.pop();
-            glTF::Node& node = scene.nodes[node_index];
+        material_creation.set_name("material_no_cull_transparent").set_program(program_no_cull).set_render_index(2);
+        Material* material_no_cull_transparent = renderer.create_material(material_creation);
 
-            mat4s local_matrix{};
+        material_creation.set_name("material_cull_transparent").set_program(program_cull).set_render_index(3);
+        Material* material_cull_transparent = renderer.create_material(material_creation);
 
-            if(node.matrix_count) {
-                memcpy(&local_matrix, node.matrix, sizeof(mat4s));
-            } else {
-                vec3s node_scale {1.0f, 1.0f, 1.0f};
+        path_buffer.shutdown();
+        allocator->deallocate(vert_code.data);
+        allocator->deallocate(frag_code.data);
 
-                if(node.scale_count != 0) {
-                    PASSERT(node.scale_count == 3);
-                    node_scale = vec3s{node.scale[0], node.scale[1], node.scale[2]};
-                }
+        glTF::Scene& root_gltf_scene = scene.gltf_scene.scenes[scene.gltf_scene.scene];
 
-                vec3s node_translation {0.f, 0.f, 0.f};
-                if(node.translation_count != 0) {
-                    PASSERT(node.translation_count == 3);
-                    node_translation = vec3s{node.translation[0], node.translation[1], node.translation[2]};
-                }
+        for (u32 node_index = 0; node_index < root_gltf_scene.nodes_count; node_index++) {
+            glTF::Node& node = scene.gltf_scene.nodes[root_gltf_scene.nodes[node_index]];
 
-                versors node_rotation = glms_quat_identity();
-                if(node.rotation_count != 0) {
-                    PASSERT(node.rotation_count == 4);
-                    node_rotation = glms_quat_init(node.rotation[0], node.rotation[1], node.rotation[2], node.rotation[3]);
-                }
-
-                Transform transform;
-                transform.translation = node_translation;
-                transform.scale = node_scale;
-                transform.rotation = node_rotation;
-
-                local_matrix = transform.calculate_matrix();
-            }
-
-            node_matrix[node_index] = local_matrix;
-
-            for(u32 child_index = 0; child_index < node.children_count; child_index++) {
-                u32 child_node_index = node.children[child_index];
-                node_parents[child_node_index] = node_index;
-                node_stack.push(child_node_index);
-            }
-
-            if(node.mesh == glTF::INVALID_INT_VALUE) {
+            if (node.mesh == glTF::INVALID_INT_VALUE) {
                 continue;
             }
 
-            glTF::Mesh& mesh = scene.meshes[node.mesh];
+            glTF::Mesh& mesh = scene.gltf_scene.meshes[node.mesh];
 
-            mat4s final_matrix = local_matrix;
-            i32 node_parent = node_parents[node_index];
-            while(node_parent != -1) {
-                final_matrix = glms_mat4_mul(node_matrix[node_parent], final_matrix);
-                node_parent = node_parents[node_parent];
+            vec3s node_scale{1.0f, 1.0f, 1.0f};
+            if (node.scale_count != 0) {
+                PASSERT(node.scale_count == 3);
+                node_scale = vec3s{node.scale[0], node.scale[1], node.scale[2]};
             }
 
-            for(u32 primitive_index = 0; primitive_index < mesh.primitives_count; primitive_index++) {
+            // GLTF primitives are essentially submeshes
+            for (u32 primitive_index = 0; primitive_index < mesh.primitives_count; primitive_index++) {
                 MeshDraw mesh_draw{};
 
-                mesh_draw.material_data.model = final_matrix;
+                mesh_draw.scale = node_scale;
 
                 glTF::MeshPrimitive& mesh_primitive = mesh.primitives[primitive_index];
 
-                glTF::Accessor& indices_accessor = scene.accessors[mesh_primitive.indices];
-                PASSERT(indices_accessor.component_type == glTF::Accessor::UNSIGNED_INT || indices_accessor.component_type == glTF::Accessor::UNSIGNED_SHORT);
-                mesh_draw.index_type = indices_accessor.component_type == glTF::Accessor::UNSIGNED_INT ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
+                const i32 position_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes,
+                                                                                      mesh_primitive.attribute_count,
+                                                                                      "POSITION");
+                const i32 tangent_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes,
+                                                                                     mesh_primitive.attribute_count,
+                                                                                     "TANGENT");
+                const i32 normal_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes,
+                                                                                    mesh_primitive.attribute_count,
+                                                                                    "NORMAL");
+                const i32 texcoord_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes,
+                                                                                      mesh_primitive.attribute_count,
+                                                                                      "TEXCOORD_0");
 
-                glTF::BufferView& indices_buffer_view = scene.buffer_views[indices_accessor.buffer_view];
-                BufferResource& indices_buffer_gpu = buffers[indices_accessor.buffer_view];
+                get_mesh_vertex_buffer(scene, position_accessor_index, mesh_draw.position_buffer,
+                                       mesh_draw.position_offset);
+                get_mesh_vertex_buffer(scene, tangent_accessor_index, mesh_draw.tangent_buffer,
+                                       mesh_draw.tangent_offset);
+                get_mesh_vertex_buffer(scene, normal_accessor_index, mesh_draw.normal_buffer, mesh_draw.normal_offset);
+                get_mesh_vertex_buffer(scene, texcoord_accessor_index, mesh_draw.texcoord_buffer,
+                                       mesh_draw.texcoord_offset);
+
+                // Create index buffer
+                glTF::Accessor& indices_accessor = scene.gltf_scene.accessors[mesh_primitive.indices];
+                glTF::BufferView& indices_buffer_view = scene.gltf_scene.buffer_views[indices_accessor.buffer_view];
+                BufferResource& indices_buffer_gpu = scene.buffers[indices_accessor.buffer_view];
                 mesh_draw.index_buffer = indices_buffer_gpu.handle;
-                mesh_draw.index_offset = indices_accessor.byte_offset== glTF::INVALID_INT_VALUE ? 0 : indices_accessor.byte_offset;
+                mesh_draw.index_offset =
+                        indices_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : indices_accessor.byte_offset;
                 mesh_draw.primitive_count = indices_accessor.count;
 
-                PASSERT((mesh_draw.primitive_count % 3) == 0);
+                // Create  material
+                glTF::Material& material = scene.gltf_scene.materials[mesh_primitive.material];
 
-                i32 position_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "POSITION");
-                i32 tangent_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "TANGENT");
-                i32 normal_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "NORMAL");
-                i32 texcoord_accessor_index = gltf_get_attribute_accessor_index(mesh_primitive.attributes, mesh_primitive.attribute_count, "TEXCOORD_0");
+                bool transparent = get_mesh_material(renderer, scene, material, mesh_draw);
 
-                vec3s* position_data = nullptr;
-                u32* index_data_32 = (u32*) get_buffer_data(scene.buffer_views, indices_accessor.buffer_view, buffers_data);
-                u16* index_data_16 = (u16*) index_data_32;
-                u32 vertex_count = 0;
-
-                if(position_accessor_index != -1) {
-                    glTF::Accessor& position_accessor = scene.accessors[position_accessor_index];
-                    glTF::BufferView& position_buffer_view = scene.buffer_views[position_accessor.buffer_view];
-                    BufferResource& position_buffer_gpu = buffers[position_accessor.buffer_view];
-
-                    vertex_count = position_accessor.count;
-
-                    mesh_draw.position_buffer = position_buffer_gpu.handle;
-                    mesh_draw.position_offset = position_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : position_accessor.byte_offset;
-
-                    position_data = (vec3s*)get_buffer_data(scene.buffer_views, position_accessor.buffer_view, buffers_data);
-                } else {
-                    PASSERTM(false, "No position data found!");
-                    continue;
-                }
-
-                if(normal_accessor_index != -1) {
-                    glTF::Accessor& normal_accessor = scene.accessors[normal_accessor_index];
-                    glTF::BufferView& normal_buffer_view = scene.buffer_views[normal_accessor.buffer_view];
-                    BufferResource& normal_buffer_gpu = buffers[normal_accessor.buffer_view];
-
-                    mesh_draw.normal_buffer = normal_buffer_gpu.handle;
-                    mesh_draw.normal_offset = normal_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : normal_accessor.byte_offset;
-                } else {
-                    // Compute at runtime
-                    Array<vec3s> normals_array{};
-                    normals_array.init(allocator, vertex_count, vertex_count);
-                    memset(normals_array.data, 0, normals_array.size * sizeof(vec3s));
-
-                    u32 index_count = mesh_draw.primitive_count;
-                    for(u32 index = 0; index < index_count; index += 3) {
-                        u32 i0 = indices_accessor.component_type == glTF::Accessor::UNSIGNED_INT ? index_data_32[index]  : index_data_16[index];
-                        u32 i1 = indices_accessor.component_type == glTF::Accessor::UNSIGNED_INT ? index_data_32[index + 1]  : index_data_16[index + 1];
-                        u32 i2 = indices_accessor.component_type == glTF::Accessor::UNSIGNED_INT ? index_data_32[index + 2]  : index_data_16[index + 2];
-
-                        vec3s p0 = position_data[i0];
-                        vec3s p1 = position_data[i1];
-                        vec3s p2 = position_data[i2];
-
-                        vec3s a = glms_vec3_sub(p1, p0);
-                        vec3s b = glms_vec3_sub(p2, p0);
-
-                        vec3s normal = glms_cross(a, b);
-
-                        normals_array[i0] = glms_vec3_add(normals_array[i0], normal);
-                        normals_array[i1] = glms_vec3_add(normals_array[i1], normal);
-                        normals_array[i2] = glms_vec3_add(normals_array[i2], normal);
-                    }
-
-                    for(u32 vertex = 0; vertex < vertex_count; vertex++) {
-                        normals_array[vertex] = glms_normalize(normals_array[vertex]);
-                    }
-
-                    BufferCreation normals_creation{};
-                    normals_creation.set(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, ResourceUsageType::Immutable, normals_array.size * sizeof(vec3s)).set_name("normals").set_data(normals_array.data);
-
-                    mesh_draw.normal_buffer = gpu.create_buffer(normals_creation);
-                    mesh_draw.normal_offset = 0;
-
-                    custom_mesh_buffers.push(mesh_draw.normal_buffer);
-
-                    normals_array.shutdown();
-                }
-
-                if(tangent_accessor_index != -1) {
-                    glTF::Accessor& tangent_accessor = scene.accessors[tangent_accessor_index];
-                    glTF::BufferView& tangent_buffer_view = scene.buffer_views[tangent_accessor.buffer_view];
-                    BufferResource& tangent_buffer_gpu = buffers[tangent_accessor.buffer_view];
-
-                    mesh_draw.tangent_buffer = tangent_buffer_gpu.handle;
-                    mesh_draw.tangent_offset = tangent_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : tangent_accessor.byte_offset;
-
-                    mesh_draw.material_data.flags |= MaterialFeatures_TangentVertexAttribute;
-                }
-
-                if(texcoord_accessor_index != -1) {
-                    glTF::Accessor& texcoord_accessor = scene.accessors[texcoord_accessor_index];
-                    glTF::BufferView& texcoord_buffer_view = scene.buffer_views[texcoord_accessor.buffer_view];
-                    BufferResource& texcoord_buffer_gpu = buffers[texcoord_accessor.buffer_view];
-
-                    mesh_draw.texcoord_buffer = texcoord_buffer_gpu.handle;
-                    mesh_draw.texcoord_offset = texcoord_accessor.byte_offset == glTF::INVALID_INT_VALUE ? 0 : texcoord_accessor.byte_offset;
-
-                    mesh_draw.material_data.flags |= MaterialFeatures_TexcoordVertexAttribute;
-                }
-
-                PASSERTM(mesh_primitive.material != glTF::INVALID_INT_VALUE, "Mesh with no material is not supported");
-                glTF::Material& material = scene.materials[mesh_primitive.material];
-
-                // Descriptor set
-                DescriptorSetCreation ds_creation{};
-                ds_creation.set_layout(cube_dsl).buffer(cube_cb, 0);
-
-                buffer_creation.reset().set(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, ResourceUsageType::Dynamic, sizeof(MaterialData)).set_name("material");
-                mesh_draw.material_buffer = gpu.create_buffer(buffer_creation);
-                ds_creation.buffer(mesh_draw.material_buffer, 1);
-
-                if(material.pbr_metallic_roughness != nullptr) {
-                    if(material.pbr_metallic_roughness->base_color_factor_count != 0) {
-                        PASSERT(material.pbr_metallic_roughness->base_color_factor_count == 4);
-
-                        mesh_draw.material_data.base_color_factor = {
-                                material.pbr_metallic_roughness->base_color_factor[0],
-                                material.pbr_metallic_roughness->base_color_factor[1],
-                                material.pbr_metallic_roughness->base_color_factor[2],
-                                material.pbr_metallic_roughness->base_color_factor[3],
-                        };
+                if (transparent) {
+                    if (material.double_sided) {
+                        mesh_draw.material = material_no_cull_transparent;
                     } else {
-                        mesh_draw.material_data.base_color_factor = { 1.0f, 1.0f, 1.0f, 1.0f };
+                        mesh_draw.material = material_cull_transparent;
                     }
-
-                    if(material.pbr_metallic_roughness->base_color_texture != nullptr) {
-                        glTF::Texture& diffuse_texture = scene.textures[material.pbr_metallic_roughness->base_color_texture->index];
-                        TextureResource& diffuse_texture_gpu = images[diffuse_texture.source];
-
-                        SamplerHandle sampler_handle = dummy_sampler;
-                        if(diffuse_texture.sampler != glTF::INVALID_INT_VALUE) {
-                            sampler_handle = samplers[diffuse_texture.sampler].handle;
-                        }
-
-                        ds_creation.texture_sampler(diffuse_texture_gpu.handle, sampler_handle, 2);
-
-                        mesh_draw.material_data.flags |= MaterialFeatures_ColorTexture;
-                    } else {
-                        ds_creation.texture_sampler(dummy_texture, dummy_sampler, 2);
-                    }
-
-                    if(material.pbr_metallic_roughness->metallic_roughness_texture != nullptr) {
-                        glTF::Texture& roughness_texture = scene.textures[material.pbr_metallic_roughness->metallic_roughness_texture->index];
-                        TextureResource& roughness_texture_gpu = images[roughness_texture.source];
-
-                        SamplerHandle sampler_handle = dummy_sampler;
-                        if(roughness_texture.sampler != glTF::INVALID_INT_VALUE) {
-                            sampler_handle = samplers[roughness_texture.sampler].handle;
-                        }
-
-                        ds_creation.texture_sampler(roughness_texture_gpu.handle, sampler_handle, 3);
-
-                        mesh_draw.material_data.flags |= MaterialFeatures_RoughnessTexture;
-                    } else {
-                        ds_creation.texture_sampler(dummy_texture, dummy_sampler, 3);
-                    }
-
-                    if(material.pbr_metallic_roughness->metallic_factor != glTF::INVALID_FLOAT_VALUE) {
-                        mesh_draw.material_data.metallic_factor = material.pbr_metallic_roughness->metallic_factor;
-                    } else {
-                        mesh_draw.material_data.metallic_factor = 1.0f;
-                    }
-
-                    if(material.pbr_metallic_roughness->roughness_factor != glTF::INVALID_FLOAT_VALUE) {
-                        mesh_draw.material_data.roughness_factor = material.pbr_metallic_roughness->roughness_factor;
-                    } else {
-                        mesh_draw.material_data.roughness_factor = 1.0f;
-                    }
-                }
-
-                if(material.occlusion_texture != nullptr) {
-                    glTF::Texture& occlusion_texture = scene.textures[material.occlusion_texture->index];
-
-                    TextureResource& occlusion_texture_gpu = images[occlusion_texture.source];
-
-                    SamplerHandle sampler_handle = dummy_sampler;
-                    if(occlusion_texture.sampler != glTF::INVALID_INT_VALUE) {
-                        sampler_handle = samplers[occlusion_texture.sampler].handle;
-                    }
-
-                    ds_creation.texture_sampler(occlusion_texture_gpu.handle, sampler_handle, 4);
-
-                    mesh_draw.material_data.occlusion_factor = material.occlusion_texture->strength != glTF::INVALID_FLOAT_VALUE ? material.occlusion_texture->strength : 1.0f;
-                    mesh_draw.material_data.flags |= MaterialFeatures_OcclusionTexture;
                 } else {
-                    mesh_draw.material_data.occlusion_factor = 1.0f;
-                    ds_creation.texture_sampler(dummy_texture, dummy_sampler, 4);
-                }
-
-                if(material.emissive_factor_count != 0) {
-                    mesh_draw.material_data.emissive_factor = vec3s {
-                        material.emissive_factor[0],
-                        material.emissive_factor[1],
-                        material.emissive_factor[2],
-                    };
-                }
-
-                if(material.emissive_texture != nullptr) {
-                    glTF::Texture& emissive_texture = scene.textures[material.emissive_texture->index];
-
-                    TextureResource& emissive_texture_gpu = images[emissive_texture.source];
-
-                    SamplerHandle sampler_handle = dummy_sampler;
-                    if(emissive_texture.sampler != glTF::INVALID_INT_VALUE) {
-                        sampler_handle = samplers[emissive_texture.sampler].handle;
+                    if (material.double_sided) {
+                        mesh_draw.material = material_no_cull_opaque;
+                    } else {
+                        mesh_draw.material = material_cull_opaque;
                     }
-
-                    ds_creation.texture_sampler(emissive_texture_gpu.handle, sampler_handle, 5);
-
-                    mesh_draw.material_data.flags |= MaterialFeatures_EmissiveTexture;
-                } else {
-                    ds_creation.texture_sampler(dummy_texture, dummy_sampler, 5);
                 }
 
-                if(material.normal_texture != nullptr) {
-                    glTF::Texture& normal_texture = scene.textures[material.normal_texture->index];
-                    TextureResource& normal_texture_gpu = images[normal_texture.source];
-
-                    SamplerHandle sampler_handle = dummy_sampler;
-                    if(normal_texture.sampler != glTF::INVALID_INT_VALUE) {
-                        sampler_handle = samplers[normal_texture.sampler].handle;
-                    }
-
-                    ds_creation.texture_sampler(normal_texture_gpu.handle, sampler_handle, 6);
-
-                    mesh_draw.material_data.flags |= MaterialFeatures_NormalTexture;
-                } else {
-                    ds_creation.texture_sampler(dummy_texture, dummy_sampler, 6);
-                }
-
-                mesh_draw.descriptor_set = gpu.create_descriptor_set(ds_creation);
-                mesh_draws.push(mesh_draw);
+                scene.mesh_draws.push(mesh_draw);
             }
 
         }
-
-        node_parents.shutdown();
-        node_stack.shutdown();
-        node_matrix.shutdown();
-
-        rx = 0.0f;
-        ry = 0.0f;
     }
 
-    for(u32 buffer_index = 0; buffer_index < scene.buffers_count; buffer_index++) {
-        void* buffer = buffers_data[buffer_index];
-        allocator->deallocate(buffer);
-    }
-    buffers_data.shutdown();
+    qsort(scene.mesh_draws.data, scene.mesh_draws.size, sizeof(MeshDraw), mesh_material_compare);
 
     i64 begin_frame_tick = time_now();
 
-    vec3s eye = vec3s { 0.0f, 2.5f, 2.0f };
-    vec3s look = vec3s { 0.0f, 0.0f, -1.0f };
-    vec3s right = vec3s { 1.0f, 0.0f, 0.0f };
-
-    f32 yaw = 0.0f;
-    f32 pitch = 0.0f;
+    vec3s light = vec3s {0.0f, 4.0f, 0.0f};
 
     float model_scale = 1.0f;
-
-    int frame = 0;
+    float light_range = 20.0f;
+    float light_intensity = 80.0f;
 
     while(!window.should_exit()) {
+        ZoneScopedN("RenderLoop");
 
-        ZoneScoped;
-
+        // New frame
         if(!window.minimized) {
             gpu.new_frame();
         }
@@ -1002,9 +745,16 @@ int main(int argc, char** argv) {
         begin_frame_tick = current_tick;
 
         input_handler.start_new_frame();
+        game_camera.update(&input_handler, window.width * 1.f, window.height * 1.f, delta_time);
+        window.center_mouse(game_camera.mouse_dragging);
 
         if(ImGui::Begin("Puffin ImGui")) {
             ImGui::InputFloat("Model scale", &model_scale, 0.001f);
+            ImGui::InputFloat3( "Light position", light.raw );
+            ImGui::InputFloat( "Light range", &light_range );
+            ImGui::InputFloat( "Light intensity", &light_intensity );
+            ImGui::InputFloat3( "Camera position", game_camera.camera.position.raw );
+            ImGui::InputFloat3( "Camera target movement", game_camera.target_movement.raw );
         }
         ImGui::End();
 
@@ -1013,73 +763,42 @@ int main(int argc, char** argv) {
         }
         ImGui::End();
 
-        mat4s global_model = {};
+        MemoryService::instance()->imgui_draw();
+
         {
             // Update rotating cube data
-            MapBufferParameters cb_map = { cube_cb, 0, 0 };
+            MapBufferParameters cb_map = { scene_cb, 0, 0 };
             float* cb_data = (float*)gpu.map_buffer(cb_map);
 
             if(cb_data) {
-                if(input_handler.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) && !ImGui::GetIO().WantCaptureMouse) {
-
-                    f32 mouse_pos_dy = (f32)(input_handler.mouse_position.y - input_handler.previous_mouse_position.y);
-                    f32 mouse_pos_dx = (f32)(input_handler.mouse_position.x - input_handler.previous_mouse_position.x);
-
-                    pitch += (mouse_pos_dy) * 0.1f;
-                    yaw += (mouse_pos_dx) * 0.3f;
-
-                    pitch = clamp(pitch, -60.0f, 60.0f);
-
-                    if(yaw > 360.0f) {
-                        yaw -= 360.0f;
-                    }
-
-                    mat3s rxm = glms_mat4_pick3( glms_rotate_make(glm_rad(-pitch), vec3s {1.0f, 0.0f, 0.0f }));
-                    mat3s rym = glms_mat4_pick3(glms_rotate_make(glm_rad(-yaw), vec3s {0.0f, 1.0f, 0.0f}));
-
-                    look = glms_mat3_mulv(rxm, vec3s{0.0f, 0.0f, -1.0f});
-                    look = glms_mat3_mulv(rym, look);
-
-                    right = glms_cross(look, vec3s {0.0f, 1.0f, 0.0f});
-                }
-
-                if(input_handler.is_key_down(Key::KEY_W)) {
-                    eye = glms_vec3_add(eye, glms_vec3_scale(look, 5.0f * delta_time));
-                } else if(input_handler.is_key_down(Key::KEY_S)){
-                    eye = glms_vec3_sub(eye, glms_vec3_scale(look, 5.0f * delta_time));
-                }
-
-                if(input_handler.is_key_down(Key::KEY_D)) {
-                    eye = glms_vec3_add(eye, glms_vec3_scale(right, 5.0f * delta_time));
-                } else if(input_handler.is_key_down(Key::KEY_A)){
-                    eye = glms_vec3_sub(eye, glms_vec3_scale(right, 5.0f * delta_time));
-                }
-
-                mat4s view = glms_lookat(eye, glms_vec3_add(eye, look), vec3s{0.0f, 1.0f, 0.0f});
-                mat4s projection = glms_perspective(glm_rad(60.0f), gpu.swapchain_width * 1.0f / gpu.swapchain_height, 0.01f, 1000.0f);
-
-                // Calculate view projection matrix
-                mat4s view_projection = glms_mat4_mul(projection, view);
-
-                // Rotate cube
-                rx += 1.0f * delta_time;
-                ry += 2.0f * delta_time;
-
-                mat4s rxm = glms_rotate_make(rx, vec3s{1.0f, 0.0f, 0.0f});
-                mat4s rym = glms_rotate_make(glm_rad(45.0f), vec3s{0.0f, 1.0f, 0.0f});
-
-                mat4s sm = glms_scale_make(vec3s{model_scale, model_scale, model_scale});
-                global_model = glms_mat4_mul(rym, sm);
-
                 UniformData uniform_data{};
-                uniform_data.vp = view_projection;
-                uniform_data.m = global_model;
-                uniform_data.eye = vec4s {eye.x, eye.y, eye.z, 1.0f};
-                uniform_data.light = vec4s {2.0f, 2.0f, 0.0f, 1.0f};
+                uniform_data.vp = game_camera.camera.view_projection;
+                uniform_data.eye = vec4s {
+                    game_camera.camera.position.x,
+                    game_camera.camera.position.y,
+                    game_camera.camera.position.z,
+                    1.0f
+                };
+                uniform_data.light = vec4s {light.x, light.y, light.z, 1.0f};
+                uniform_data.light_range = light_range;
+                uniform_data.light_intensity = light_intensity;
 
                 memcpy(cb_data, &uniform_data, sizeof(UniformData));
 
                 gpu.unmap_buffer(cb_map);
+            }
+
+            // Update per mesh material buffer
+            for(u32 mesh_index = 0; mesh_index < scene.mesh_draws.size; mesh_index++) {
+                MeshDraw& mesh_draw = scene.mesh_draws[mesh_index];
+
+                cb_map.buffer = mesh_draw.material_buffer;
+                MeshData* mesh_data = (MeshData*)gpu.map_buffer(cb_map);
+                if(mesh_data) {
+                    upload_material(*mesh_data,  mesh_draw, model_scale);
+
+                    gpu.unmap_buffer(cb_map);
+                }
             }
         }
 
@@ -1087,44 +806,26 @@ int main(int argc, char** argv) {
             puffin::CommandBuffer* gpu_commands = gpu.get_command_buffer(QueueType::Graphics, true);
             gpu_commands->push_marker("Frame");
 
-            gpu_commands->clear(0.3f, 0.9f, 0.3f, 1.0f);
+            gpu_commands->clear(0.3f, 0.3f, 0.3f, 1.0f);
             gpu_commands->clear_depth_stencil(1.0f, 0);
             gpu_commands->bind_pass(gpu.get_swapchain_pass());
-            gpu_commands->bind_pipeline(cube_pipeline);
             gpu_commands->set_scissors(nullptr);
             gpu_commands->set_viewport(nullptr);
 
-            for(u32 mesh_index = 0; mesh_index < mesh_draws.size; mesh_index++) {
-                MeshDraw mesh_draw = mesh_draws[mesh_index];
+            Material* last_material = nullptr;
 
-                mesh_draw.material_data.model_inv = glms_mat4_inv(glms_mat4_transpose(glms_mat4_mul(global_model, mesh_draw.material_data.model)));
+            for(u32 mesh_index = 0; mesh_index < scene.mesh_draws.size; mesh_index++) {
+                MeshDraw& mesh_draw = scene.mesh_draws[mesh_index];
 
-                MapBufferParameters material_map = { mesh_draw.material_buffer, 0, 0 };
-                MaterialData* material_buffer_data = (MaterialData*) gpu.map_buffer(material_map);
+                if(mesh_draw.material != last_material) {
+                    PipelineHandle pipeline = renderer.get_pipeline(mesh_draw.material);
 
-                memcpy(material_buffer_data, &mesh_draw.material_data, sizeof(MaterialData));
+                    gpu_commands->bind_pipeline(pipeline);
 
-                gpu.unmap_buffer(material_map);
-
-                gpu_commands->bind_vertex_buffer(mesh_draw.position_buffer, 0, mesh_draw.position_offset);
-                gpu_commands->bind_vertex_buffer(mesh_draw.normal_buffer, 2, mesh_draw.normal_offset);
-
-                if(mesh_draw.material_data.flags & MaterialFeatures_TangentVertexAttribute) {
-                    gpu_commands->bind_vertex_buffer(mesh_draw.tangent_buffer, 1, mesh_draw.tangent_offset);
-                } else {
-                    gpu_commands->bind_vertex_buffer(dummy_attribute_buffer, 1, 0);
+                    last_material = mesh_draw.material;
                 }
 
-                if(mesh_draw.material_data.flags & MaterialFeatures_TexcoordVertexAttribute) {
-                    gpu_commands->bind_vertex_buffer(mesh_draw.texcoord_buffer, 3, mesh_draw.texcoord_offset);
-                } else {
-                    gpu_commands->bind_vertex_buffer(dummy_attribute_buffer, 3, 0);
-                }
-
-                gpu_commands->bind_index_buffer(mesh_draw.index_buffer, mesh_draw.index_offset, mesh_draw.index_type);
-                gpu_commands->bind_descriptor_set(&mesh_draw.descriptor_set, 1, nullptr, 0);
-
-                gpu_commands->draw_indexed(TopologyType::Triangle, mesh_draw.primitive_count, 1, 0, 0, 0);
+                draw_mesh(renderer, gpu_commands, mesh_draw);
             }
 
             imgui->render(*gpu_commands);
@@ -1141,45 +842,19 @@ int main(int argc, char** argv) {
         }
 
         FrameMark;
-
-        frame++;
     }
 
-    for(u32 mesh_index = 0; mesh_index < mesh_draws.size; mesh_index++) {
-        MeshDraw& mesh_draw = mesh_draws[mesh_index];
-        gpu.destroy_descriptor_set(mesh_draw.descriptor_set);
-        gpu.destroy_buffer(mesh_draw.material_buffer);
-    }
-
-    for(u32 mi = 0; mi < custom_mesh_buffers.size; mi++) {
-        gpu.destroy_buffer(custom_mesh_buffers[mi]);
-    }
-    custom_mesh_buffers.shutdown();
-
-    gpu.destroy_buffer(dummy_attribute_buffer);
-    gpu.destroy_texture(dummy_texture);
-    gpu.destroy_sampler(dummy_sampler);
-
-    mesh_draws.shutdown();
-
-    gpu.destroy_buffer(cube_cb);
-    gpu.destroy_pipeline(cube_pipeline);
-    gpu.destroy_descriptor_set_layout(cube_dsl);
-
+    gpu.destroy_buffer(scene_cb);
     imgui->shutdown();
 
     gpu_profiler.shutdown();
 
+    scene_free_gpu_resources(scene, renderer);
+
     rm.shutdown();
     renderer.shutdown();
 
-    samplers.shutdown();
-    images.shutdown();
-    buffers.shutdown();
-
-    resource_name_buffer.shutdown();
-
-    gltf_free(scene);
+    scene_unload(scene, renderer);
 
     input_handler.shutdown();
     window.shutdown();

@@ -551,6 +551,8 @@ struct ShaderState {
 
     u32 active_shaders = 0;
     bool graphics_pipeline = false;
+
+    spriv::ParseResult*      parse_result;
 };
 
 struct DescriptorBinding {

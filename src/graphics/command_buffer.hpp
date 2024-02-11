@@ -16,6 +16,8 @@ struct CommandBuffer {
 
     // Commands interface
 
+    DescriptorSetHandle     create_descriptor_set(const DescriptorSetCreation& creation);
+
     void                    bind_pass(RenderPassHandle render_pass_handle);
     void                    bind_pipeline(PipelineHandle pipeline_handle);
     void                    bind_vertex_buffer(BufferHandle buffer_handle, u32 binding, u32 offset);
@@ -50,6 +52,9 @@ struct CommandBuffer {
     void                    reset();
 
     VkCommandBuffer         vk_command_buffer;
+
+    VkDescriptorPool        vk_descriptor_pool;
+    ResourcePool            descriptor_sets;
 
     GpuDevice*              gpu_device;
 
