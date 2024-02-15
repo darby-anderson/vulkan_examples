@@ -28,7 +28,7 @@ template <typename T>
 T                       clamp(const T& v, const T& a, const T& b) { return v < a ? a : (v > b ? b : v ); }
 
 template <typename To, typename From>
-To safe_case(From a) {
+To safe_cast(From a) {
     To result = (To)a;
 
     From check = (From)result;
