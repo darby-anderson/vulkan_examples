@@ -93,7 +93,13 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
         SpvOp op = (SpvOp)(data[word_index] & 0xFF);
         u16 word_count = (u16)(data[word_index] >> 16);
 
-        // START HERE
+        switch (op) {
+            case (SpvOpEntryPoint):
+            {
+                //STARTHERE
+            }
+        }
+
     }
 
 }
