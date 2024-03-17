@@ -142,11 +142,13 @@ void ImGuiService::init(void* configuration) {
     ShaderStateCreation shader_creation{};
 
     if(gpu->bindless_supported) {
-        shader_creation.set_name("ImGui").add_stage(g_vertex_shader_code_bindless, (uint32_t) strlen(g_vertex_shader_code_bindless), VK_SHADER_STAGE_VERTEX_BIT)
+        shader_creation.set_name("ImGui")
+            .add_stage(g_vertex_shader_code_bindless, (uint32_t) strlen(g_vertex_shader_code_bindless), VK_SHADER_STAGE_VERTEX_BIT)
             .add_stage(g_fragment_shader_code_bindless, (uint32_t) strlen(g_fragment_shader_code_bindless), VK_SHADER_STAGE_FRAGMENT_BIT);
     } else {
-        shader_creation.set_name("ImGui").add_stage(g_vertex_shader_code, (uint32_t) strlen(g_vertex_shader_code), VK_SHADER_STAGE_VERTEX_BIT)
-                .add_stage(g_fragment_shader_code, (uint32_t) strlen(g_fragment_shader_code), VK_SHADER_STAGE_FRAGMENT_BIT);
+        shader_creation.set_name("ImGui")
+            .add_stage(g_vertex_shader_code, (uint32_t) strlen(g_vertex_shader_code), VK_SHADER_STAGE_VERTEX_BIT)
+            .add_stage(g_fragment_shader_code, (uint32_t) strlen(g_fragment_shader_code), VK_SHADER_STAGE_FRAGMENT_BIT);
     }
 
     PipelineCreation pipeline_creation{};
@@ -186,11 +188,14 @@ void ImGuiService::init(void* configuration) {
     // Create descriptor set
     DescriptorSetCreation ds_creation{};
     if(gpu->bindless_supported) {
-        ds_creation.set_layout(pipeline_creation.descriptor_set_layout[0]).buffer(g_ui_cb, 0)
-                .set_name("RL_ImGui");
+        ds_creation.set_layout(pipeline_creation.descriptor_set_layout[0])
+            .buffer(g_ui_cb, 0)
+            .texture(g_font_texture, 1)
+            .set_name("RL_ImGui");
     } else {
-        ds_creation.set_layout(pipeline_creation.descriptor_set_layout[0]).buffer(g_ui_cb, 0)
-                .texture(g_font_texture, 1).set_name("RL_ImGui");
+        ds_creation.set_layout(pipeline_creation.descriptor_set_layout[0])
+            .buffer(g_ui_cb, 0)
+            .set_name("RL_ImGui");
     }
     g_ui_descriptor_set = gpu->create_descriptor_set(ds_creation);
 

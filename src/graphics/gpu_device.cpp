@@ -4,6 +4,7 @@
 #include "gpu_device.hpp"
 #include "vulkan_resources.hpp"
 #include "command_buffer.hpp"
+#include "spirv_parser.hpp"
 
 #include "memory.hpp"
 #include "hash_map.hpp"
@@ -1067,6 +1068,8 @@ VkShaderModuleCreateInfo GpuDevice::compile_shader(cstring code, u32 code_size, 
             VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO
     };
 
+    p_print("compiling shader %s\n", name);
+
     // Compile from glsl to spirv
     cstring temp_filename = "temp.shader";
 
@@ -1144,6 +1147,12 @@ ShaderStateHandle GpuDevice::create_shader_state(const ShaderStateCreation& crea
 
     size_t current_temporary_marker = temporary_allocator->get_marker();
 
+    StringBuffer name_buffer;
+    name_buffer.init(temporary_allocator, 4096);
+
+    shader_state->parse_result = (spirv::ParseResult*)allocator->allocate(sizeof(spirv::ParseResult), 64);
+    memset(shader_state->parse_result, 0, sizeof(spirv::ParseResult));
+
     for(compiled_shaders = 0; compiled_shaders < creation.stages_count; compiled_shaders++) {
         const ShaderStage& stage = creation.stages[compiled_shaders];
 
@@ -1174,6 +1183,8 @@ ShaderStateHandle GpuDevice::create_shader_state(const ShaderStateCreation& crea
                                 &shader_state->shader_stage_info[compiled_shaders].module) != VK_SUCCESS) {
             break;
         }
+
+        spirv::parse_binary(shader_create_info.pCode, shader_create_info.codeSize, name_buffer, shader_state->parse_result);
 
         set_resource_name(VK_OBJECT_TYPE_SHADER_MODULE, (u64)shader_state->shader_stage_info[compiled_shaders].module, creation.name);
     }
@@ -1254,9 +1265,9 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation, cstr
     u32 num_active_layouts = shader_state_data->parse_result->set_count;
 
     // Create VkPipelineLayout
-    for(u32 l = 0; l < creation.num_active_layouts; l++) {
-        pipeline->descriptor_set_layout[l] = access_descriptor_set_layout(creation.descriptor_set_layout[l]);
-        pipeline->descriptor_set_layout_handle[l] = creation.descriptor_set_layout[l];
+    for(u32 l = 0; l < num_active_layouts; l++) {
+        pipeline->descriptor_set_layout_handle[l] = create_descriptor_set_layout(shader_state_data->parse_result->sets[l]);
+        pipeline->descriptor_set_layout[l] = access_descriptor_set_layout(pipeline->descriptor_set_layout_handle[l]);
 
         vk_layouts[l] = pipeline->descriptor_set_layout[l]->vk_descriptor_set_layout;
     }
@@ -1271,7 +1282,7 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation, cstr
             VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO
     };
     pipeline_layout_info.pSetLayouts = vk_layouts;
-    pipeline_layout_info.setLayoutCount = creation.num_active_layouts + bindless_active;
+    pipeline_layout_info.setLayoutCount = num_active_layouts + bindless_active;
 
     VkPipelineLayout pipeline_layout;
     VkResult result = vkCreatePipelineLayout(vulkan_device, &pipeline_layout_info, vulkan_allocation_callbacks, &pipeline_layout);
@@ -1279,7 +1290,7 @@ PipelineHandle GpuDevice::create_pipeline(const PipelineCreation& creation, cstr
 
     // Cache pipeline layout
     pipeline->vk_pipeline_layout = pipeline_layout;
-    pipeline->num_active_layouts = creation.num_active_layouts;
+    pipeline->num_active_layouts = num_active_layouts;
 
     // Create full pipeline
     if(shader_state_data->graphics_pipeline) {
@@ -1624,6 +1635,10 @@ DescriptorSetLayoutHandle GpuDevice::create_descriptor_set_layout(const puffin::
         binding.count = 1;
         binding.type = input_binding.type;
         binding.name = input_binding.name;
+
+        if(bindless_supported && (binding.type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER || binding.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)){
+            continue;
+        }
 
         VkDescriptorSetLayoutBinding& vk_binding = descriptor_set_layout->vk_binding[used_bindings];
         used_bindings++;

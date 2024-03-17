@@ -196,6 +196,14 @@ DescriptorSetLayoutCreation::add_binding(const DescriptorSetLayoutCreation::Bind
     return *this;
 }
 
+DescriptorSetLayoutCreation&
+DescriptorSetLayoutCreation::add_binding_at_index(const DescriptorSetLayoutCreation::Binding& binding, int index) {
+    bindings[index] = binding;
+    num_bindings = (index + 1) > num_bindings ? (index + 1) : num_bindings;
+
+    return *this;
+}
+
 DescriptorSetLayoutCreation& DescriptorSetLayoutCreation::set_name(cstring name) {
     this->name = name;
 

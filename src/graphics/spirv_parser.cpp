@@ -2,7 +2,7 @@
 // Created by darby on 2/11/2024.
 //
 
-#include "spriv_parser.hpp"
+#include "spirv_parser.hpp"
 
 #include "numerics.hpp"
 #include "string.hpp"
@@ -73,10 +73,10 @@ VkShaderStageFlags parse_execution_model(SpvExecutionModel model)
 
 void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, ParseResult* parse_result) {
     PASSERT((data_size % 4) == 0);
-    u32 spv_word_count = safe_cast<u32>(data_size / 32);
+    u32 spv_word_count = safe_cast<u32>(data_size / 4);
 
     u32 magic_number = data[0];
-    PASSERT(magic_number == 0x0723023);
+    PASSERT(magic_number == 0x07230203);
 
     u32 id_bound = data[3];
 
@@ -212,7 +212,7 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
                 id.width = (u8) data[word_index + 2];
                 id.sign = (u8) data[word_index + 3];
 
-                return;
+                break;
             }
             case ( SpvOpTypeFloat ):
             {
@@ -221,7 +221,7 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
                 u32 id_index = data[ word_index + 1 ];
                 PASSERT( id_index < id_bound );
 
-                Id& id= ids[ id_index ];
+                Id& id = ids[ id_index ];
                 id.op = op;
                 id.width = ( u8 )data[ word_index + 2 ];
 
@@ -234,7 +234,7 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
                 u32 id_index = data[ word_index + 1 ];
                 PASSERT( id_index < id_bound );
 
-                Id& id= ids[ id_index ];
+                Id& id = ids[ id_index ];
                 id.op = op;
                 id.type_index = data[ word_index + 2 ];
                 id.count = data[ word_index + 3 ];
@@ -248,7 +248,7 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
                 u32 id_index = data[ word_index + 1 ];
                 PASSERT( id_index < id_bound );
 
-                Id& id= ids[ id_index ];
+                Id& id = ids[ id_index ];
                 id.op = op;
                 id.type_index = data[ word_index + 2 ];
                 id.count = data[ word_index + 3 ];
@@ -299,11 +299,135 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
 
                 break;
             }
+            case ( SpvOpTypeRuntimeArray ):
+            {
+                PASSERT( word_count == 3 );
 
+                u32 id_index = data[ word_index + 1 ];
+                PASSERT( id_index < id_bound );
+
+                Id& id = ids[ id_index ];
+                id.op = op;
+                id.type_index = data[ word_index + 2 ];
+
+                break;
+            }
+            case ( SpvOpTypeStruct ):
+            {
+                PASSERT( word_count >= 2 );
+
+                u32 id_index = data[ word_index + 1 ];
+                PASSERT( id_index < id_bound );
+
+                Id& id = ids[ id_index ];
+                id.op = op;
+
+                if ( word_count > 2 ) {
+                    for ( u16 member_index = 0; member_index < word_count - 2; ++member_index ) {
+                        id.members[ member_index ].id_index = data[ word_index + member_index + 2 ];
+                    }
+                }
+
+                break;
+            }
+            case ( SpvOpTypePointer ):
+            {
+                PASSERT( word_count == 4 );
+
+                u32 id_index = data[ word_index + 1 ];
+                PASSERT( id_index < id_bound );
+
+                Id& id = ids[ id_index ];
+                id.op = op;
+                id.type_index = data[ word_index + 3 ];
+
+                break;
+            }
+
+            case ( SpvOpConstant ):
+            {
+                PASSERT( word_count >= 4 );
+
+                u32 id_index = data[ word_index + 1 ];
+                PASSERT( id_index < id_bound );
+
+                Id& id= ids[ id_index ];
+                id.op = op;
+                id.type_index = data[ word_index + 2 ];
+                id.value = data[ word_index + 3 ]; // NOTE(marco): we assume all constants to have maximum 32bit width
+
+                break;
+            }
+
+            case ( SpvOpVariable ):
+            {
+                PASSERT( word_count >= 4 );
+
+                u32 id_index = data[ word_index + 2 ];
+                PASSERT( id_index < id_bound );
+
+                Id& id= ids[ id_index ];
+                id.op = op;
+                id.type_index = data[ word_index + 1 ];
+                id.storage_class = ( SpvStorageClass )data[ word_index + 3 ];
+
+                break;
+            }
         }
 
+        word_index += word_count;
     }
 
+    for(u32 id_index = 0; id_index < ids.size; id_index++) {
+        Id& id = ids[id_index];
+
+        if(id.op == SpvOpVariable) {
+            switch(id.storage_class) {
+                case(SpvStorageClassUniform):
+                case(SpvStorageClassUniformConstant):
+                {
+                    if(id.set == 1 && (id.binding == k_bindless_texture_binding || id.binding == (k_bindless_texture_binding + 1))) {
+                        // Managed by the GPU device
+                        continue;
+                    }
+
+                    Id& uniform_type = ids[ids[id.type_index].type_index];
+
+                    DescriptorSetLayoutCreation& set_layout = parse_result->sets[id.set];
+                    set_layout.set_set_index(id.set);
+
+                    DescriptorSetLayoutCreation::Binding binding{};
+                    binding.start = id.binding;
+                    binding.count = 1;
+
+                    switch(uniform_type.op) {
+                        case(SpvOpTypeStruct):
+                        {
+                            binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                            binding.name = uniform_type.name.text;
+                            break;
+                        }
+                        case(SpvOpTypeSampledImage):
+                        {
+                            binding.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                            binding.name = id.name.text;
+                            break;
+                        }
+                    }
+
+                    set_layout.add_binding_at_index(binding, id.binding);
+
+                    parse_result->set_count = max(parse_result->set_count, (id.set + 1));
+
+                    break;
+                }
+            }
+        }
+
+        id.members.shutdown();
+    }
+
+    ids.shutdown();
 }
 
 }

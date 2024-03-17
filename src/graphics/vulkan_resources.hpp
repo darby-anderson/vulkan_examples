@@ -10,6 +10,10 @@
 
 namespace puffin {
 
+namespace spirv {
+    struct ParseResult;
+}
+
 static const u32 k_invalid_index = 0xffffffff;
 
 typedef u32 ResourceHandle;
@@ -233,7 +237,7 @@ struct DescriptorSetLayoutCreation {
 
     DescriptorSetLayoutCreation& add_binding(const Binding& binding);
 
-    // DescriptorSetLayoutCreation&    add_binding_at_index( const Binding& binding, int index ); DID I ADD THIS MYSELF??
+    DescriptorSetLayoutCreation&    add_binding_at_index( const Binding& binding, int index );
     DescriptorSetLayoutCreation& set_name(cstring name);
 
     DescriptorSetLayoutCreation& set_set_index(u32 index);
@@ -552,7 +556,7 @@ struct ShaderState {
     u32 active_shaders = 0;
     bool graphics_pipeline = false;
 
-    spriv::ParseResult*      parse_result;
+    spirv::ParseResult*      parse_result;
 };
 
 struct DescriptorBinding {

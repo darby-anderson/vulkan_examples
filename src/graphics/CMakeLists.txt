@@ -18,7 +18,7 @@ add_library(
         "gpu_profiler.hpp"
         "gpu_profiler.cpp"
         "spirv_parser.cpp"
-        "spriv_parser.hpp"
+        "spirv_parser.hpp"
 )
 
 

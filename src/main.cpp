@@ -494,11 +494,9 @@ int main(int argc, char** argv) {
         InjectDefault3DModel();
     }
 
-    // Init services
-
     using namespace puffin;
 
-
+    // Init services
     MemoryService::instance()->init(nullptr);
     Allocator* allocator = &MemoryService::instance()->system_allocator;
 
@@ -766,7 +764,7 @@ int main(int argc, char** argv) {
         MemoryService::instance()->imgui_draw();
 
         {
-            // Update rotating cube data
+            // Update common constant buffer
             MapBufferParameters cb_map = { scene_cb, 0, 0 };
             float* cb_data = (float*)gpu.map_buffer(cb_map);
 
