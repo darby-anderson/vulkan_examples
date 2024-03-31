@@ -124,6 +124,7 @@ static void draw_mesh(puffin::Renderer& renderer, puffin::CommandBuffer* gpu_com
     gpu_commands->bind_vertex_buffer(mesh_draw.position_buffer, 0, mesh_draw.position_offset);
     gpu_commands->bind_vertex_buffer(mesh_draw.tangent_buffer, 1, mesh_draw.tangent_offset);
     gpu_commands->bind_vertex_buffer(mesh_draw.normal_buffer, 2, mesh_draw.normal_offset);
+    gpu_commands->bind_vertex_buffer(mesh_draw.texcoord_buffer, 3, mesh_draw.texcoord_offset);
     gpu_commands->bind_index_buffer(mesh_draw.index_buffer, mesh_draw.index_offset, VkIndexType::VK_INDEX_TYPE_UINT16);
     gpu_commands->bind_local_descriptor_set(&descriptor_set, 1, nullptr, 0);
 
@@ -567,11 +568,11 @@ int main(int argc, char** argv) {
 
         cstring vert_file = "main.vert";
         char* vert_path = path_buffer.append_use_f("%s%s", PUFFIN_SHADER_FOLDER, vert_file);
-        FileReadResult vert_code = file_read_text(vert_file, allocator);
+        FileReadResult vert_code = file_read_text(vert_path, allocator);
 
         cstring frag_file = "main.frag";
         char* frag_path = path_buffer.append_use_f("%s%s", PUFFIN_SHADER_FOLDER, frag_file);
-        FileReadResult frag_code = file_read_text(frag_file, allocator);
+        FileReadResult frag_code = file_read_text(frag_path, allocator);
 
         // Vertex input
         pipeline_creation.vertex_input.add_vertex_attribute({0, 0, 0, VertexComponentFormat::Float3}); // position
@@ -605,7 +606,7 @@ int main(int argc, char** argv) {
                                     sizeof(UniformData)).set_name("scene_cb");
         scene_cb = gpu.create_buffer(buffer_creation);
 
-        pipeline_creation.name = "main_no_call";
+        pipeline_creation.name = "main_no_cull";
         Program* program_no_cull = renderer.create_program({pipeline_creation});
 
         pipeline_creation.rasterization.cull_mode = VK_CULL_MODE_BACK_BIT;
@@ -618,7 +619,7 @@ int main(int argc, char** argv) {
         material_creation.set_name("material_no_cull_opaque").set_program(program_no_cull).set_render_index(0);
         Material* material_no_cull_opaque = renderer.create_material(material_creation);
 
-        material_creation.set_name("material_cull_opaque").set_program(program_no_cull).set_render_index(1);
+        material_creation.set_name("material_cull_opaque").set_program(program_cull).set_render_index(1);
         Material* material_cull_opaque = renderer.create_material(material_creation);
 
         material_creation.set_name("material_no_cull_transparent").set_program(program_no_cull).set_render_index(2);
@@ -816,9 +817,9 @@ int main(int argc, char** argv) {
                 MeshDraw& mesh_draw = scene.mesh_draws[mesh_index];
 
                 if(mesh_draw.material != last_material) {
-                    PipelineHandle pipeline = renderer.get_pipeline(mesh_draw.material);
+                    PipelineHandle pipeline_handle = renderer.get_pipeline(mesh_draw.material);
 
-                    gpu_commands->bind_pipeline(pipeline);
+                    gpu_commands->bind_pipeline(pipeline_handle);
 
                     last_material = mesh_draw.material;
                 }

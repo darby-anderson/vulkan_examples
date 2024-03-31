@@ -1806,6 +1806,10 @@ static void vulkan_fill_write_descriptor_sets(GpuDevice& gpu_device, const Descr
 
         const DescriptorBinding& binding = descriptor_set_layout->bindings[layout_binding_index];
 
+        if(gpu_device.bindless_supported && (binding.type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER || binding.type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)) {
+            continue;
+        }
+
         u32 i = used_resources;
         used_resources++;
 

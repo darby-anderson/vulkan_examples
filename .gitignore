@@ -55,3 +55,4 @@ vcpkg_installed/
 
 # dependencies
 # deps/
+*.cache

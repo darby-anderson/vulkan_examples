@@ -113,7 +113,7 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
 
                 Id& id = ids[id_index];
 
-                SpvDecoration decoration = (SpvDecoration)data[word_count + 2];
+                SpvDecoration decoration = (SpvDecoration)data[word_index + 2];
                 switch(decoration) {
                     case(SpvDecorationBinding):
                     {
@@ -122,7 +122,7 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
                     }
                     case(SpvDecorationDescriptorSet):
                     {
-                        id.binding = data[word_index + 3];
+                        id.set = data[word_index + 3];
                         break;
                     }
                 }
@@ -387,7 +387,7 @@ void parse_binary(const u32* data, size_t data_size, StringBuffer& name_buffer, 
                 case(SpvStorageClassUniformConstant):
                 {
                     if(id.set == 1 && (id.binding == k_bindless_texture_binding || id.binding == (k_bindless_texture_binding + 1))) {
-                        // Managed by the GPU device
+                        // Managed by the GPU
                         continue;
                     }
 

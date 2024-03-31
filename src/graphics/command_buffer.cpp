@@ -222,7 +222,7 @@ void CommandBuffer::bind_local_descriptor_set(DescriptorSetHandle* descriptor_se
     num_offsets = 0;
 
     for(u32 l = 0; l < num_lists; l++) {
-        DescriptorSet* descriptor_set = gpu_device->access_descriptor_set(descriptor_set_handles[l]);
+        DescriptorSet* descriptor_set = (DescriptorSet*) descriptor_sets.access_resource(descriptor_set_handles[l].index);
         vk_descriptor_sets[l] = descriptor_set->vk_descriptor_set;
 
         // Search for dynamic buffers
@@ -247,7 +247,7 @@ void CommandBuffer::bind_local_descriptor_set(DescriptorSetHandle* descriptor_se
 
     if(gpu_device->bindless_supported) {
         vkCmdBindDescriptorSets(vk_command_buffer, current_pipeline->vk_bind_point, current_pipeline->vk_pipeline_layout,
-                                k_first_set, num_lists, vk_descriptor_sets, num_offsets, offsets_cache);
+                                1, 1, &gpu_device->vulkan_bindless_descriptor_set, 0, nullptr);
     }
 }
 
