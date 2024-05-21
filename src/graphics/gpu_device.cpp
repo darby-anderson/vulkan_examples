@@ -622,7 +622,7 @@ void GpuDevice::init(const DeviceCreation& creation) {
             0,
             VK_FORMAT_D32_SFLOAT,
             TextureType::Texture2D,
-            "DepthImage_texture"
+            "DepthImage_Texture"
     };
     depth_texture = create_texture(depth_texture_creation);
 
@@ -2887,7 +2887,7 @@ void GpuDevice::present() {
         Texture* vk_dummy_texture = access_texture(dummy_texture);
 
         u32 current_write_index = 0;
-        for(u32 it = texture_to_update_bindless.size - 1; it >= 0; it--) {
+        for(i32 it = texture_to_update_bindless.size - 1; it >= 0; it--) {
             ResourceUpdate& texture_to_update = texture_to_update_bindless[it];
 
             Texture* texture = access_texture({ texture_to_update.handle });
